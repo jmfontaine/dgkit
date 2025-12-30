@@ -3,7 +3,5 @@ CREATE TABLE artist (
     name TEXT,
     profile TEXT,
     real_name TEXT,
-    aliases TEXT,
-    name_variations TEXT,
     urls TEXT
 );

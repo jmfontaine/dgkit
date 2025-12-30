@@ -4,28 +4,16 @@ from lxml import etree
 from pathlib import Path
 from typing import Iterator
 
-from dgkit.models import Artist, Label, MasterRelease, Release
+from dgkit.models import Artist, ArtistAlias, Label, MasterRelease, Release
 from dgkit.types import Parser
 
 
 class ArtistParser:
     tag = "artist"
 
-    def parse(self, elem: etree._Element) -> Iterator[Artist]:
-        """Parse artist XML element into Artist record."""
-        aliases_elem = elem.find("aliases")
-        aliases = (
-            [int(name.get("id")) for name in aliases_elem.findall("name")]
-            if aliases_elem is not None
-            else []
-        )
-
-        namevariations_elem = elem.find("namevariations")
-        name_variations = (
-            [name.text for name in namevariations_elem.findall("name") if name.text]
-            if namevariations_elem is not None
-            else []
-        )
+    def parse(self, elem: etree._Element) -> Iterator[Artist | ArtistAlias]:
+        """Parse artist XML element into Artist and ArtistAlias records."""
+        artist_id = int(elem.findtext("id"))
 
         urls_elem = elem.find("urls")
         urls = (
@@ -35,14 +23,20 @@ class ArtistParser:
         )
 
         yield Artist(
-            id=int(elem.findtext("id")),
+            id=artist_id,
             name=elem.findtext("name"),
             profile=elem.findtext("profile"),
             real_name=elem.findtext("realname"),
-            aliases=aliases,
-            name_variations=name_variations,
             urls=urls,
         )
+
+        # Yield alias relationships
+        aliases_elem = elem.find("aliases")
+        if aliases_elem is not None:
+            for name in aliases_elem.findall("name"):
+                alias_id = name.get("id")
+                if alias_id:
+                    yield ArtistAlias(artist_id=artist_id, alias_id=int(alias_id))
 
 
 class LabelParser:
