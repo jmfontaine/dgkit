@@ -2,7 +2,15 @@ import typer
 from pathlib import Path
 from typing import Annotated
 
-from dgkit.core import Format, build_output_path, convert, inspect
+from dgkit.core import (
+    WRITERS,
+    Compression,
+    Format,
+    build_database_path,
+    build_output_path,
+    convert,
+    inspect,
+)
 
 app = typer.Typer(help="Discogs Toolkit")
 
@@ -19,17 +27,26 @@ def convert_cmd(
     output_dir: Annotated[
         Path, typer.Option("--output-dir", "-o", help="Output directory.")
     ] = Path("."),
+    compress: Annotated[
+        Compression, typer.Option("--compress", "-c", case_sensitive=False, help="Compression algorithm.")
+    ] = Compression.none,
     force: Annotated[
         bool, typer.Option("--force", "-f", help="Overwrite existing files.")
     ] = False,
 ):
     # Check for existing output files (only for file-based formats)
     if format not in (Format.console, Format.blackhole) and not force:
-        existing = [
-            build_output_path(f, format, output_dir)
-            for f in files
-            if f.is_file() and build_output_path(f, format, output_dir).exists()
-        ]
+        valid_files = [f for f in files if f.is_file()]
+        writer_cls = WRITERS[format]
+        if writer_cls.aggregates_inputs:
+            db_path = build_database_path(valid_files, output_dir)
+            existing = [db_path] if db_path.exists() else []
+        else:
+            existing = [
+                build_output_path(f, format, output_dir, compress)
+                for f in valid_files
+                if build_output_path(f, format, output_dir, compress).exists()
+            ]
         if existing:
             typer.echo("The following files already exist:")
             for path in existing:
@@ -37,7 +54,7 @@ def convert_cmd(
             if not typer.confirm("Overwrite?"):
                 raise typer.Abort()
 
-    convert(format, files, limit=limit, output_dir=output_dir)
+    convert(format, files, limit=limit, output_dir=output_dir, compression=compress)
 
 
 @app.command(name="inspect")
