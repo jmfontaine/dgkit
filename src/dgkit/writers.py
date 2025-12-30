@@ -94,6 +94,14 @@ class SqliteWriter:
 
     aggregates_inputs = True
 
+    # Columns to index after data insertion (by table name)
+    INDEX_COLUMNS: dict[str, list[str]] = {
+        "artist": ["name"],
+        "label": ["name"],
+        "masterrelease": ["title"],
+        "release": ["title"],
+    }
+
     def __init__(self, path: Path, batch_size: int = 10000, **kwargs: Any):
         self.path = path
         self.batch_size = batch_size
@@ -112,6 +120,9 @@ class SqliteWriter:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         if self._conn:
             self._flush_all()
+            if not exc_type:
+                self._create_indices()
+                self._conn.execute("ANALYZE")
             self._conn.commit()
             self._conn.close()
 
@@ -125,20 +136,35 @@ class SqliteWriter:
         annotations = type(record).__annotations__
 
         columns = []
-        for field in fields:
+        for i, field in enumerate(fields):
             field_type = annotations.get(field, str)
             # Handle Optional types (e.g., str | None)
             if hasattr(field_type, "__origin__"):
                 args = getattr(field_type, "__args__", ())
                 field_type = next((t for t in args if t is not type(None)), str)
             sqlite_type = SQLITE_TYPE_MAP.get(field_type, "TEXT")
-            columns.append(f"{field} {sqlite_type}")
+            # First integer column becomes PRIMARY KEY
+            if i == 0 and sqlite_type == "INTEGER":
+                columns.append(f"{field} INTEGER PRIMARY KEY")
+            else:
+                columns.append(f"{field} {sqlite_type}")
 
         self._conn.execute(f"DROP TABLE IF EXISTS {table_name}")
         self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
         self._tables.add(table_name)
         self._buffers[table_name] = []
         return table_name
+
+    def _create_indices(self) -> None:
+        """Create indices on tables after data insertion."""
+        if not self._conn:
+            return
+        for table_name in self._tables:
+            for column in self.INDEX_COLUMNS.get(table_name, []):
+                index_name = f"idx_{table_name}_{column}"
+                self._conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column})"
+                )
 
     def _flush(self, table_name: str) -> None:
         """Flush buffered records to the database."""
