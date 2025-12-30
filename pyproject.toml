@@ -1,0 +1,18 @@
+[project]
+name = "dgkit"
+version = "0.1.0"
+description = "Discogs Toolkit"
+readme = "README.md"
+authors = [{ name = "Jean-Marc Fontaine", email = "jm@jmfontaine.net" }]
+requires-python = ">=3.13"
+dependencies = [
+    "lxml>=6.0.2",
+    "typer>=0.21.0",
+]
+
+[project.scripts]
+dgkit = "dgkit.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
