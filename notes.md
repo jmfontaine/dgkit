@@ -38,3 +38,4 @@
 
 
 - Should the `load` command take a DSN string as input or options (e.g., --host --db --user --port --pwd)?
+- How to best provide various levels of information to the user about operations?

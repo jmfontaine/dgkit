@@ -2,11 +2,21 @@ import bz2
 import gzip
 import json
 import sqlite3
+from importlib.resources import files
 
 from pathlib import Path
 from typing import IO, Any, NamedTuple, Self
 
 from dgkit.types import Compression, DatabaseType, FileFormat, Writer
+
+
+def _load_sql(database: str, category: str, name: str) -> str | None:
+    """Load SQL from package resources."""
+    try:
+        resource = files("dgkit.sql") / database / category / f"{name}.sql"
+        return resource.read_text()
+    except FileNotFoundError:
+        return None
 
 
 def open_compressed(path: Path, mode: str, compression: Compression) -> IO:
@@ -94,14 +104,6 @@ class SqliteWriter:
 
     aggregates_inputs = True
 
-    # Columns to index after data insertion (by table name)
-    INDEX_COLUMNS: dict[str, list[str]] = {
-        "artist": ["name"],
-        "label": ["name"],
-        "masterrelease": ["title"],
-        "release": ["title"],
-    }
-
     def __init__(self, path: Path, batch_size: int = 10000, **kwargs: Any):
         self.path = path
         self.batch_size = batch_size
@@ -132,25 +134,29 @@ class SqliteWriter:
         if table_name in self._tables:
             return table_name
 
-        fields = record._fields
-        annotations = type(record).__annotations__
-
-        columns = []
-        for i, field in enumerate(fields):
-            field_type = annotations.get(field, str)
-            # Handle Optional types (e.g., str | None)
-            if hasattr(field_type, "__origin__"):
-                args = getattr(field_type, "__args__", ())
-                field_type = next((t for t in args if t is not type(None)), str)
-            sqlite_type = SQLITE_TYPE_MAP.get(field_type, "TEXT")
-            # First integer column becomes PRIMARY KEY
-            if i == 0 and sqlite_type == "INTEGER":
-                columns.append(f"{field} INTEGER PRIMARY KEY")
-            else:
-                columns.append(f"{field} {sqlite_type}")
-
         self._conn.execute(f"DROP TABLE IF EXISTS {table_name}")
-        self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
+
+        # Try to load schema from SQL file
+        sql = _load_sql("sqlite", "tables", table_name)
+        if sql:
+            self._conn.execute(sql)
+        else:
+            # Fall back to dynamic schema generation
+            fields = record._fields
+            annotations = type(record).__annotations__
+            columns = []
+            for i, field in enumerate(fields):
+                field_type = annotations.get(field, str)
+                if hasattr(field_type, "__origin__"):
+                    args = getattr(field_type, "__args__", ())
+                    field_type = next((t for t in args if t is not type(None)), str)
+                sqlite_type = SQLITE_TYPE_MAP.get(field_type, "TEXT")
+                if i == 0 and sqlite_type == "INTEGER":
+                    columns.append(f"{field} INTEGER PRIMARY KEY")
+                else:
+                    columns.append(f"{field} {sqlite_type}")
+            self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
+
         self._tables.add(table_name)
         self._buffers[table_name] = []
         return table_name
@@ -160,11 +166,9 @@ class SqliteWriter:
         if not self._conn:
             return
         for table_name in self._tables:
-            for column in self.INDEX_COLUMNS.get(table_name, []):
-                index_name = f"idx_{table_name}_{column}"
-                self._conn.execute(
-                    f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column})"
-                )
+            sql = _load_sql("sqlite", "indices", table_name)
+            if sql:
+                self._conn.execute(sql)
 
     def _flush(self, table_name: str) -> None:
         """Flush buffered records to the database."""
