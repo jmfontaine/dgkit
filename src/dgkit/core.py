@@ -21,7 +21,7 @@ class Parser(Protocol):
 
     tag: str
 
-    def parse(self, elem: etree._Element) -> NamedTuple: ...
+    def parse(self, elem: etree._Element) -> Iterator[NamedTuple]: ...
 
 
 class Reader(Protocol):
@@ -51,6 +51,9 @@ class GzipReader:
 class BlackholeWriter:
     """Writer that drops records. This is mostly useful for benchmarking."""
 
+    def __init__(self, **kwargs: Any):
+        pass
+
     def __enter__(self) -> Self:
         return self
 
@@ -63,6 +66,9 @@ class BlackholeWriter:
 
 class ConsoleWriter:
     """Writer that prints records to the console."""
+
+    def __init__(self, **kwargs: Any):
+        pass
 
     def __enter__(self) -> Self:
         return self
@@ -131,9 +137,9 @@ class Release(NamedTuple):
 class ArtistParser:
     tag = "artist"
 
-    def parse(self, elem: etree._Element) -> Artist:
+    def parse(self, elem: etree._Element) -> Iterator[Artist]:
         """Parse artist XML element into Artist record."""
-        return Artist(
+        yield Artist(
             id=int(elem.findtext("id")),
             name=elem.findtext("name"),
         )
@@ -142,9 +148,9 @@ class ArtistParser:
 class LabelParser:
     tag = "label"
 
-    def parse(self, elem: etree._Element) -> Label:
+    def parse(self, elem: etree._Element) -> Iterator[Label]:
         """Parse label XML element into Label record."""
-        return Label(
+        yield Label(
             id=int(elem.get("id") or elem.findtext("id")),
             name=elem.findtext("name") or elem.text,
         )
@@ -153,9 +159,9 @@ class LabelParser:
 class MasterReleaseParser:
     tag = "master"
 
-    def parse(self, elem: etree._Element) -> MasterRelease:
-        """Parse artist XML element into MasterRelease record."""
-        return MasterRelease(
+    def parse(self, elem: etree._Element) -> Iterator[MasterRelease]:
+        """Parse master XML element into MasterRelease record."""
+        yield MasterRelease(
             id=int(elem.get("id")),
             title=elem.findtext("title"),
         )
@@ -164,9 +170,9 @@ class MasterReleaseParser:
 class ReleaseParser:
     tag = "release"
 
-    def parse(self, elem: etree._Element) -> Release:
-        """Parse artist XML element into Release record."""
-        return Release(
+    def parse(self, elem: etree._Element) -> Iterator[Release]:
+        """Parse release XML element into Release record."""
+        yield Release(
             id=int(elem.get("id")),
             title=elem.findtext("title"),
         )
@@ -215,24 +221,51 @@ def execute(
     """Execute the pipeline."""
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
-            record = parser.parse(elem)
-            writer.write(record)
+            for record in parser.parse(elem):
+                writer.write(record)
 
 
-def convert(format: Format, paths: list[Path], limit: int | None = None):
+def build_output_path(input_path: Path, format: Format, output_dir: Path) -> Path:
+    """Build output path from input filename and output directory."""
+    stem = input_path.name.removesuffix(".xml.gz")
+    return output_dir / f"{stem}.{format.value}"
+
+
+def convert(
+    format: Format,
+    paths: list[Path],
+    limit: int | None = None,
+    output_dir: Path = Path("."),
+):
     reader = GzipReader()
 
-    with get_writer(format) as writer:
+    # Formats that don't write to files use a single shared writer
+    if format in (Format.console, Format.blackhole):
+        with get_writer(format) as writer:
+            for path in paths:
+                if path.is_file():
+                    parser = get_parser(path)
+                    execute(
+                        path=path,
+                        parser=parser,
+                        reader=reader,
+                        writer=writer,
+                        limit=limit,
+                    )
+    else:
+        # File-based formats: one writer per input file
         for path in paths:
             if path.is_file():
+                output_path = build_output_path(path, format, output_dir)
                 parser = get_parser(path)
-                execute(
-                    path=path,
-                    parser=parser,
-                    reader=reader,
-                    writer=writer,
-                    limit=limit,
-                )
+                with get_writer(format, path=output_path) as writer:
+                    execute(
+                        path=path,
+                        parser=parser,
+                        reader=reader,
+                        writer=writer,
+                        limit=limit,
+                    )
 
 
 def inspect():
