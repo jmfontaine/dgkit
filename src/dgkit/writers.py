@@ -94,17 +94,24 @@ class SqliteWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, path: Path, **kwargs: Any):
+    def __init__(self, path: Path, batch_size: int = 10000, **kwargs: Any):
         self.path = path
+        self.batch_size = batch_size
         self._conn: sqlite3.Connection | None = None
         self._tables: set[str] = set()
+        self._buffers: dict[str, list[tuple]] = {}
 
     def __enter__(self) -> Self:
         self._conn = sqlite3.connect(self.path)
+        # Performance optimizations for bulk inserts
+        self._conn.execute("PRAGMA journal_mode = WAL")
+        self._conn.execute("PRAGMA synchronous = NORMAL")
+        self._conn.execute("PRAGMA cache_size = -64000")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         if self._conn:
+            self._flush_all()
             self._conn.commit()
             self._conn.close()
 
@@ -130,7 +137,25 @@ class SqliteWriter:
         self._conn.execute(f"DROP TABLE IF EXISTS {table_name}")
         self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
         self._tables.add(table_name)
+        self._buffers[table_name] = []
         return table_name
+
+    def _flush(self, table_name: str) -> None:
+        """Flush buffered records to the database."""
+        if not self._conn or table_name not in self._buffers:
+            return
+        buffer = self._buffers[table_name]
+        if not buffer:
+            return
+        placeholders = ", ".join("?" * len(buffer[0]))
+        sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
+        self._conn.executemany(sql, buffer)
+        buffer.clear()
+
+    def _flush_all(self) -> None:
+        """Flush all buffered records."""
+        for table_name in self._buffers:
+            self._flush(table_name)
 
     def write(self, record: NamedTuple) -> None:
         if not self._conn:
@@ -140,9 +165,9 @@ class SqliteWriter:
         values = tuple(
             json.dumps(v) if isinstance(v, list) else v for v in record
         )
-        placeholders = ", ".join("?" * len(record))
-        sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
-        self._conn.execute(sql, values)
+        self._buffers[table_name].append(values)
+        if len(self._buffers[table_name]) >= self.batch_size:
+            self._flush(table_name)
 
 
 FILE_WRITERS: dict[FileFormat, type[Writer]] = {

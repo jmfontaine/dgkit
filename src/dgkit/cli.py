@@ -84,6 +84,9 @@ def load_cmd(
     limit: Annotated[
         int | None, typer.Option(help="Max records per file.")
     ] = None,
+    batch: Annotated[
+        int, typer.Option("--batch", "-b", help="Batch size for database inserts.")
+    ] = 10000,
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing database.")
     ] = False,
@@ -107,7 +110,7 @@ def load_cmd(
             raise typer.Abort()
 
     filters = build_filters(drop_if, unset)
-    load(database, files, db_path=path, limit=limit, filters=filters)
+    load(database, files, db_path=path, limit=limit, filters=filters, batch_size=batch)
 
 
 @app.command(name="inspect")

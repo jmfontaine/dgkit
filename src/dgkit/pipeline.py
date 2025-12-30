@@ -135,13 +135,14 @@ def load(
     db_path: Path,
     limit: int | None = None,
     filters: list[Filter] | None = None,
+    batch_size: int = 10000,
 ):
     """Load XML dumps into a database."""
     reader = GzipReader()
     valid_paths = [p for p in paths if p.is_file()]
     filter = FilterChain(filters) if filters else None
 
-    with get_database_writer(database, path=db_path) as writer:
+    with get_database_writer(database, path=db_path, batch_size=batch_size) as writer:
         for path in valid_paths:
             parser = get_parser(path)
             execute(
