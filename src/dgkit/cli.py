@@ -2,15 +2,14 @@ import typer
 from pathlib import Path
 from typing import Annotated
 
-from dgkit.core import (
-    WRITERS,
-    Compression,
-    Format,
+from dgkit.pipeline import (
     build_database_path,
     build_output_path,
     convert,
     inspect,
 )
+from dgkit.types import Compression, Format
+from dgkit.writers import WRITERS
 
 app = typer.Typer(help="Discogs Toolkit")
 
