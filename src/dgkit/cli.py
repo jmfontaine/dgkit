@@ -16,10 +16,11 @@ app = typer.Typer(help="Discogs Toolkit")
 
 @app.command(name="convert", help="Convert data dumps to another format.")
 def convert_cmd(
-    format: Annotated[
-        Format, typer.Argument(case_sensitive=False, help="Output file format.")
-    ],
     files: Annotated[list[Path], typer.Argument(help="Input files.")],
+    format: Annotated[
+        Format,
+        typer.Option("--format", "-f", case_sensitive=False, help="Output file format."),
+    ],
     limit: Annotated[
         int | None, typer.Option(help="Max records per file.")
     ] = None,
@@ -29,12 +30,12 @@ def convert_cmd(
     compress: Annotated[
         Compression, typer.Option("--compress", "-c", case_sensitive=False, help="Compression algorithm.")
     ] = Compression.none,
-    force: Annotated[
-        bool, typer.Option("--force", "-f", help="Overwrite existing files.")
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", "-w", help="Overwrite existing files.")
     ] = False,
 ):
     # Check for existing output files (only for file-based formats)
-    if format not in (Format.console, Format.blackhole) and not force:
+    if format not in (Format.console, Format.blackhole) and not overwrite:
         valid_files = [f for f in files if f.is_file()]
         writer_cls = WRITERS[format]
         if writer_cls.aggregates_inputs:
