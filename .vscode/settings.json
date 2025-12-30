@@ -4,7 +4,9 @@
     "dgkit",
     "Fontaine",
     "getprevious",
+    "lxml",
     "pycache",
+    "typer",
     "venv"
   ]
 }
