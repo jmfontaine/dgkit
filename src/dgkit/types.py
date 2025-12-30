@@ -6,10 +6,13 @@ from lxml import etree
 from pathlib import Path
 
 
-class Format(str, Enum):
+class FileFormat(str, Enum):
     blackhole = "blackhole"
     console = "console"
     jsonl = "jsonl"
+
+
+class DatabaseType(str, Enum):
     sqlite = "sqlite"
 
 

@@ -7,9 +7,10 @@ from dgkit.pipeline import (
     build_output_path,
     convert,
     inspect,
+    load,
 )
-from dgkit.types import Compression, Format
-from dgkit.writers import WRITERS
+from dgkit.types import Compression, DatabaseType, FileFormat
+from dgkit.writers import FILE_WRITERS
 
 app = typer.Typer(help="Discogs Toolkit")
 
@@ -18,7 +19,7 @@ app = typer.Typer(help="Discogs Toolkit")
 def convert_cmd(
     files: Annotated[list[Path], typer.Argument(help="Input files.")],
     format: Annotated[
-        Format,
+        FileFormat,
         typer.Option("--format", "-f", case_sensitive=False, help="Output file format."),
     ],
     limit: Annotated[
@@ -35,18 +36,13 @@ def convert_cmd(
     ] = False,
 ):
     # Check for existing output files (only for file-based formats)
-    if format not in (Format.console, Format.blackhole) and not overwrite:
+    if format not in (FileFormat.console, FileFormat.blackhole) and not overwrite:
         valid_files = [f for f in files if f.is_file()]
-        writer_cls = WRITERS[format]
-        if writer_cls.aggregates_inputs:
-            db_path = build_database_path(valid_files, output_dir)
-            existing = [db_path] if db_path.exists() else []
-        else:
-            existing = [
-                build_output_path(f, format, output_dir, compress)
-                for f in valid_files
-                if build_output_path(f, format, output_dir, compress).exists()
-            ]
+        existing = [
+            build_output_path(f, format, output_dir, compress)
+            for f in valid_files
+            if build_output_path(f, format, output_dir, compress).exists()
+        ]
         if existing:
             typer.echo("The following files already exist:")
             for path in existing:
@@ -55,6 +51,38 @@ def convert_cmd(
                 raise typer.Abort()
 
     convert(format, files, limit=limit, output_dir=output_dir, compression=compress)
+
+
+@app.command(name="load", help="Load data dumps into a database.")
+def load_cmd(
+    files: Annotated[list[Path], typer.Argument(help="Input files.")],
+    database: Annotated[
+        DatabaseType,
+        typer.Option("--database", "-d", case_sensitive=False, help="Database type."),
+    ],
+    path: Annotated[
+        Path | None, typer.Option("--path", "-p", help="Database file path.")
+    ] = None,
+    limit: Annotated[
+        int | None, typer.Option(help="Max records per file.")
+    ] = None,
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", "-w", help="Overwrite existing database.")
+    ] = False,
+):
+    valid_files = [f for f in files if f.is_file()]
+
+    # Derive database path if not provided
+    if path is None:
+        path = build_database_path(valid_files, Path("."))
+
+    # Check for existing database
+    if path.exists() and not overwrite:
+        typer.echo(f"Database already exists: {path}")
+        if not typer.confirm("Overwrite?"):
+            raise typer.Abort()
+
+    load(database, files, db_path=path, limit=limit)
 
 
 @app.command(name="inspect")

@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import IO, Any, NamedTuple, Self
 
-from dgkit.types import Compression, Format, Writer
+from dgkit.types import Compression, DatabaseType, FileFormat, Writer
 
 
 def open_compressed(path: Path, mode: str, compression: Compression) -> IO:
@@ -145,16 +145,27 @@ class SqliteWriter:
         self._conn.execute(sql, values)
 
 
-WRITERS: dict[Format, type[Writer]] = {
-    Format.blackhole: BlackholeWriter,
-    Format.console: ConsoleWriter,
-    Format.jsonl: JsonlWriter,
-    Format.sqlite: SqliteWriter,
+FILE_WRITERS: dict[FileFormat, type[Writer]] = {
+    FileFormat.blackhole: BlackholeWriter,
+    FileFormat.console: ConsoleWriter,
+    FileFormat.jsonl: JsonlWriter,
 }
 
 
-def get_writer(format: Format, **kwargs: Any) -> Writer:
-    """Create a writer for the given format."""
-    if format not in WRITERS:
+DATABASE_WRITERS: dict[DatabaseType, type[Writer]] = {
+    DatabaseType.sqlite: SqliteWriter,
+}
+
+
+def get_file_writer(format: FileFormat, **kwargs: Any) -> Writer:
+    """Create a writer for the given file format."""
+    if format not in FILE_WRITERS:
         raise NotImplementedError(f"Writer for {format.value} not implemented")
-    return WRITERS[format](**kwargs)
+    return FILE_WRITERS[format](**kwargs)
+
+
+def get_database_writer(database: DatabaseType, **kwargs: Any) -> Writer:
+    """Create a writer for the given database type."""
+    if database not in DATABASE_WRITERS:
+        raise NotImplementedError(f"Writer for {database.value} not implemented")
+    return DATABASE_WRITERS[database](**kwargs)

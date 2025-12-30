@@ -34,3 +34,7 @@
 - Should we distribute dgkit as a standalone binary?
 - How do we test dgkit on Linux and Windows machines (the author works on a Mac)?
 - How do we design the GitHub Actions workflows to achieve all of our goals in terms of QA and deployments?
+
+
+
+- Should the `load` command take a DSN string as input or options (e.g., --host --db --user --port --pwd)?

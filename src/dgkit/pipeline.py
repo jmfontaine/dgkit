@@ -7,8 +7,13 @@ from typing import IO, Iterator
 
 from dgkit.parsers import get_parser
 from dgkit.readers import GzipReader
-from dgkit.types import Compression, Format, Parser, Reader, Writer
-from dgkit.writers import WRITERS, get_writer
+from dgkit.types import Compression, DatabaseType, FileFormat, Parser, Reader, Writer
+from dgkit.writers import (
+    DATABASE_WRITERS,
+    FILE_WRITERS,
+    get_database_writer,
+    get_file_writer,
+)
 
 
 def find_elements(
@@ -46,7 +51,7 @@ COMPRESSION_EXTENSIONS: dict[Compression, str] = {
 
 def build_output_path(
     input_path: Path,
-    format: Format,
+    format: FileFormat,
     output_dir: Path,
     compression: Compression = Compression.none,
 ) -> Path:
@@ -69,23 +74,20 @@ def build_database_path(paths: list[Path], output_dir: Path) -> Path:
 
 
 def convert(
-    format: Format,
+    format: FileFormat,
     paths: list[Path],
     limit: int | None = None,
     output_dir: Path = Path("."),
     compression: Compression = Compression.none,
 ):
+    """Convert XML dumps to a file format."""
     reader = GzipReader()
     valid_paths = [p for p in paths if p.is_file()]
-    writer_cls = WRITERS[format]
+    writer_cls = FILE_WRITERS[format]
 
     if writer_cls.aggregates_inputs:
-        # Aggregating writers: single destination for all input files
-        if format in (Format.console, Format.blackhole):
-            output_path = None
-        else:
-            output_path = build_database_path(valid_paths, output_dir)
-        with get_writer(format, path=output_path) as writer:
+        # Aggregating writers (console, blackhole): no output file
+        with get_file_writer(format, path=None) as writer:
             for path in valid_paths:
                 parser = get_parser(path)
                 execute(
@@ -100,7 +102,7 @@ def convert(
         for path in valid_paths:
             output_path = build_output_path(path, format, output_dir, compression)
             parser = get_parser(path)
-            with get_writer(
+            with get_file_writer(
                 format, path=output_path, compression=compression
             ) as writer:
                 execute(
@@ -110,6 +112,28 @@ def convert(
                     reader=reader,
                     writer=writer,
                 )
+
+
+def load(
+    database: DatabaseType,
+    paths: list[Path],
+    db_path: Path,
+    limit: int | None = None,
+):
+    """Load XML dumps into a database."""
+    reader = GzipReader()
+    valid_paths = [p for p in paths if p.is_file()]
+
+    with get_database_writer(database, path=db_path) as writer:
+        for path in valid_paths:
+            parser = get_parser(path)
+            execute(
+                limit=limit,
+                path=path,
+                parser=parser,
+                reader=reader,
+                writer=writer,
+            )
 
 
 def inspect():
