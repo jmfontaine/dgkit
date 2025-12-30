@@ -2,6 +2,7 @@ import typer
 from pathlib import Path
 from typing import Annotated
 
+from dgkit.filters import Filter, parse_drop_if, parse_unset
 from dgkit.pipeline import (
     build_database_path,
     build_output_path,
@@ -10,7 +11,16 @@ from dgkit.pipeline import (
     load,
 )
 from dgkit.types import Compression, DatabaseType, FileFormat
-from dgkit.writers import FILE_WRITERS
+
+
+def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
+    """Build filter list from CLI options."""
+    filters: list[Filter] = []
+    filters.extend(parse_drop_if(drop_if))
+    unset_filter = parse_unset(unset)
+    if unset_filter:
+        filters.append(unset_filter)
+    return filters
 
 app = typer.Typer(help="Discogs Toolkit")
 
@@ -34,6 +44,12 @@ def convert_cmd(
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing files.")
     ] = False,
+    drop_if: Annotated[
+        list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
+    ] = [],
+    unset: Annotated[
+        list[str], typer.Option("--unset", help="Fields to set to null (comma-separated).")
+    ] = [],
 ):
     # Check for existing output files (only for file-based formats)
     if format not in (FileFormat.console, FileFormat.blackhole) and not overwrite:
@@ -50,7 +66,8 @@ def convert_cmd(
             if not typer.confirm("Overwrite?"):
                 raise typer.Abort()
 
-    convert(format, files, limit=limit, output_dir=output_dir, compression=compress)
+    filters = build_filters(drop_if, unset)
+    convert(format, files, limit=limit, output_dir=output_dir, compression=compress, filters=filters)
 
 
 @app.command(name="load", help="Load data dumps into a database.")
@@ -69,6 +86,12 @@ def load_cmd(
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing database.")
     ] = False,
+    drop_if: Annotated[
+        list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
+    ] = [],
+    unset: Annotated[
+        list[str], typer.Option("--unset", help="Fields to set to null (comma-separated).")
+    ] = [],
 ):
     valid_files = [f for f in files if f.is_file()]
 
@@ -82,7 +105,8 @@ def load_cmd(
         if not typer.confirm("Overwrite?"):
             raise typer.Abort()
 
-    load(database, files, db_path=path, limit=limit)
+    filters = build_filters(drop_if, unset)
+    load(database, files, db_path=path, limit=limit, filters=filters)
 
 
 @app.command(name="inspect")

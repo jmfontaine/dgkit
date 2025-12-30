@@ -5,6 +5,7 @@ from pathlib import Path
 from rich import print
 from typing import IO, Iterator
 
+from dgkit.filters import Filter, FilterChain
 from dgkit.parsers import get_parser
 from dgkit.readers import GzipReader
 from dgkit.types import Compression, DatabaseType, FileFormat, Parser, Reader, Writer
@@ -33,12 +34,22 @@ def find_elements(
 
 
 def execute(
-    *, path: Path, parser: Parser, reader: Reader, writer: Writer, limit: int | None
+    *,
+    path: Path,
+    parser: Parser,
+    reader: Reader,
+    writer: Writer,
+    limit: int | None,
+    filter: Filter | None = None,
 ):
     """Execute the pipeline."""
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
             for record in parser.parse(elem):
+                if filter is not None:
+                    record = filter(record)
+                    if record is None:
+                        continue
                 writer.write(record)
 
 
@@ -79,11 +90,13 @@ def convert(
     limit: int | None = None,
     output_dir: Path = Path("."),
     compression: Compression = Compression.none,
+    filters: list[Filter] | None = None,
 ):
     """Convert XML dumps to a file format."""
     reader = GzipReader()
     valid_paths = [p for p in paths if p.is_file()]
     writer_cls = FILE_WRITERS[format]
+    filter = FilterChain(filters) if filters else None
 
     if writer_cls.aggregates_inputs:
         # Aggregating writers (console, blackhole): no output file
@@ -96,6 +109,7 @@ def convert(
                     parser=parser,
                     reader=reader,
                     writer=writer,
+                    filter=filter,
                 )
     else:
         # File writers: one output per input
@@ -111,6 +125,7 @@ def convert(
                     parser=parser,
                     reader=reader,
                     writer=writer,
+                    filter=filter,
                 )
 
 
@@ -119,10 +134,12 @@ def load(
     paths: list[Path],
     db_path: Path,
     limit: int | None = None,
+    filters: list[Filter] | None = None,
 ):
     """Load XML dumps into a database."""
     reader = GzipReader()
     valid_paths = [p for p in paths if p.is_file()]
+    filter = FilterChain(filters) if filters else None
 
     with get_database_writer(database, path=db_path) as writer:
         for path in valid_paths:
@@ -133,6 +150,7 @@ def load(
                 parser=parser,
                 reader=reader,
                 writer=writer,
+                filter=filter,
             )
 
 

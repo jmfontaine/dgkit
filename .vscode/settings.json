@@ -6,6 +6,7 @@
     "getprevious",
     "lxml",
     "pycache",
+    "pytest",
     "typer",
     "venv"
   ]
