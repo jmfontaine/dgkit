@@ -2,7 +2,7 @@ import typer
 from pathlib import Path
 from typing import Annotated
 
-from dgkit.filters import Filter, parse_drop_if, parse_unset
+from dgkit.filters import Filter, parse_filter, parse_unset
 from dgkit.pipeline import (
     build_database_path,
     build_output_path,
@@ -16,7 +16,8 @@ from dgkit.types import Compression, DatabaseType, FileFormat
 def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
     """Build filter list from CLI options."""
     filters: list[Filter] = []
-    filters.extend(parse_drop_if(drop_if))
+    for expr in drop_if:
+        filters.append(parse_filter(expr))
     unset_filter = parse_unset(unset)
     if unset_filter:
         filters.append(unset_filter)

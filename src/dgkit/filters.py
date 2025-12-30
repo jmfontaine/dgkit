@@ -1,6 +1,22 @@
-"""Data filters for transforming or dropping records."""
+"""Data filters for transforming or dropping records.
+
+Filter expression grammar (BNF):
+    expression  ::= or_expr
+    or_expr     ::= and_expr (OR and_expr)*
+    and_expr    ::= atom (AND atom)*
+    atom        ::= comparison | '(' expression ')'
+    comparison  ::= field operator value
+    field       ::= identifier ('.' identifier)*
+    operator    ::= '==' | '!=' | '>' | '>=' | '<' | '<='
+    value       ::= string | number | 'true' | 'false' | 'null'
+"""
 
 from typing import Any, NamedTuple, Protocol
+
+import pyparsing as pp
+
+# Enable packrat parsing for recursive grammar performance
+pp.ParserElement.enable_packrat()
 
 
 class Filter(Protocol):
@@ -11,22 +27,142 @@ class Filter(Protocol):
         ...
 
 
-class DropByValue:
-    """Drop records where a field matches (or doesn't match) a value."""
+# --- Expression Parser ---
 
-    def __init__(self, field: str, value: Any, negate: bool = False):
-        self.field = field
-        self.value = value
-        self.negate = negate
+def _build_parser() -> pp.ParserElement:
+    """Build the filter expression parser."""
+    # Operators
+    EQ = pp.Literal("==").set_name("==")
+    NE = pp.Literal("!=").set_name("!=")
+    GE = pp.Literal(">=").set_name(">=")
+    LE = pp.Literal("<=").set_name("<=")
+    GT = pp.Literal(">").set_name(">")
+    LT = pp.Literal("<").set_name("<")
+    comparison_op = (EQ | NE | GE | LE | GT | LT).set_name("operator")
+
+    # Keywords (case-insensitive)
+    AND = pp.CaselessKeyword("and")
+    OR = pp.CaselessKeyword("or")
+    TRUE = pp.CaselessKeyword("true").set_parse_action(pp.replace_with(True))
+    FALSE = pp.CaselessKeyword("false").set_parse_action(pp.replace_with(False))
+    NULL = pp.CaselessKeyword("null").set_parse_action(pp.replace_with(None))
+
+    # Values
+    number = pp.common.number().set_name("number")
+    quoted_string = pp.dbl_quoted_string().set_parse_action(pp.remove_quotes)
+    single_quoted_string = pp.Regex(r"'[^']*'").set_parse_action(lambda t: t[0][1:-1])
+    string_value = (quoted_string | single_quoted_string).set_name("string")
+    value = (TRUE | FALSE | NULL | number | string_value).set_name("value")
+
+    # Field names (support dot notation for nested access)
+    identifier = pp.Word(pp.alphas + "_", pp.alphanums + "_").set_name("identifier")
+    field = pp.Combine(identifier + pp.ZeroOrMore("." + identifier)).set_name("field")
+
+    # Comparison expression
+    comparison = pp.Group(
+        field("field") + comparison_op("op") + value("value")
+    ).set_name("comparison")
+
+    # Use infix_notation for proper AND/OR precedence
+    expr = pp.infix_notation(
+        comparison,
+        [
+            (AND, 2, pp.opAssoc.LEFT, lambda t: ("AND", t[0][0::2])),
+            (OR, 2, pp.opAssoc.LEFT, lambda t: ("OR", t[0][0::2])),
+        ],
+    )
+
+    return expr
+
+
+_PARSER = _build_parser()
+
+
+# --- Comparison Evaluators ---
+
+def _get_field_value(record: NamedTuple, field: str) -> Any:
+    """Get field value from record, supporting dot notation."""
+    value: Any = record
+    for part in field.split("."):
+        if hasattr(value, part):
+            value = getattr(value, part)
+        elif hasattr(value, "_asdict"):
+            value = value._asdict().get(part)
+        elif isinstance(value, dict):
+            value = value.get(part)
+        else:
+            return None
+    return value
+
+
+def _compare(field_value: Any, op: str, target_value: Any) -> bool:
+    """Perform comparison operation."""
+    # Handle None comparisons
+    if field_value is None and target_value is None:
+        return op in ("==", ">=", "<=")
+    if field_value is None or target_value is None:
+        return op == "!="
+
+    # Type coercion for string comparisons
+    if isinstance(target_value, str) and not isinstance(field_value, str):
+        field_value = str(field_value)
+
+    try:
+        match op:
+            case "==":
+                return field_value == target_value
+            case "!=":
+                return field_value != target_value
+            case ">":
+                return field_value > target_value
+            case ">=":
+                return field_value >= target_value
+            case "<":
+                return field_value < target_value
+            case "<=":
+                return field_value <= target_value
+            case _:
+                return False
+    except TypeError:
+        return False
+
+
+def _evaluate(parsed: Any, record: NamedTuple) -> bool:
+    """Recursively evaluate parsed expression against record."""
+    # Handle AND/OR tuples from infix_notation parse actions
+    if isinstance(parsed, tuple) and len(parsed) == 2:
+        op, terms = parsed
+        results = [_evaluate(term, record) for term in terms]
+        if op == "AND":
+            return all(results)
+        elif op == "OR":
+            return any(results)
+
+    # Single comparison (ParseResults with field/op/value)
+    if isinstance(parsed, pp.ParseResults) and "field" in parsed:
+        field_value = _get_field_value(record, str(parsed["field"]))
+        return _compare(field_value, str(parsed["op"]), parsed["value"])
+
+    # List of terms (single comparison wrapped in list)
+    if isinstance(parsed, (list, pp.ParseResults)):
+        for item in parsed:
+            return _evaluate(item, record)
+
+    return True
+
+
+# --- Filter Classes ---
+
+class ExpressionFilter:
+    """Filter records using a parsed expression."""
+
+    def __init__(self, expression: str):
+        self.expression = expression
+        self._parsed = _PARSER.parse_string(expression, parse_all=True)
 
     def __call__(self, record: NamedTuple) -> NamedTuple | None:
-        record_value = getattr(record, self.field, None)
-        # Convert to string for comparison since CLI values are strings
-        matches = str(record_value) == str(self.value)
-        if self.negate:
-            matches = not matches
-        if matches:
-            return None
+        if _evaluate(self._parsed, record):
+            return None  # Drop matching records
         return record
 
 
@@ -51,25 +187,18 @@ class FilterChain:
 
     def __call__(self, record: NamedTuple) -> NamedTuple | None:
         for f in self.filters:
-            record = f(record)
-            if record is None:
+            result = f(record)
+            if result is None:
                 return None
+            record = result
         return record
 
 
-def parse_drop_if(values: list[str]) -> list[DropByValue]:
-    """Parse --drop-if field=value or field!=value arguments into DropByValue filters."""
-    filters = []
-    for value in values:
-        if "!=" in value:
-            field, val = value.split("!=", 1)
-            filters.append(DropByValue(field.strip(), val.strip(), negate=True))
-        elif "=" in value:
-            field, val = value.split("=", 1)
-            filters.append(DropByValue(field.strip(), val.strip(), negate=False))
-        else:
-            raise ValueError(f"Invalid --drop-if format: {value!r} (expected field=value or field!=value)")
-    return filters
+# --- CLI Parsing Helpers ---
+
+def parse_filter(expression: str) -> ExpressionFilter:
+    """Parse a filter expression string."""
+    return ExpressionFilter(expression)
 
 
 def parse_unset(values: list[str]) -> UnsetFields | None:
