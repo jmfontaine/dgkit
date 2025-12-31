@@ -1,4 +1,3 @@
-import logging
 import re
 
 from lxml import etree
@@ -38,8 +37,6 @@ from dgkit.writers import (
     get_database_writer,
     get_file_writer,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def find_elements(
@@ -117,12 +114,12 @@ def execute(
                 unaccessed = parse_elem.get_unaccessed()
                 if unaccessed:
                     element_id = elem.findtext("id") or elem.get("id") or "?"
-                    if summary:
-                        summary.record_unhandled()
+                    paths = ", ".join(sorted(unaccessed))
+                    message = f"Unhandled in {parser.tag} id={element_id}: {paths}"
                     if fail_on_unhandled:
                         raise UnhandledElementError(element_id, parser.tag, unaccessed)
-                    paths = ", ".join(sorted(unaccessed))
-                    logger.warning(f"Unhandled in {parser.tag} id={element_id}: {paths}")
+                    if summary:
+                        summary.record_unhandled(message)
 
             if track_bytes:
                 on_progress_bytes(reader.bytes_read)  # type: ignore[union-attr]

@@ -11,6 +11,7 @@ class Summary:
     records_modified: int
     records_written: int
     records_unhandled: int = 0
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def records_per_second(self) -> float:
@@ -41,6 +42,7 @@ class SummaryCollector:
     _records_modified: int = field(default=0, init=False)
     _records_written: int = field(default=0, init=False)
     _records_unhandled: int = field(default=0, init=False)
+    _warnings: list[str] = field(default_factory=list, init=False)
 
     def __enter__(self) -> Self:
         self._start_time = time.perf_counter()
@@ -61,8 +63,13 @@ class SummaryCollector:
     def record_written(self) -> None:
         self._records_written += 1
 
-    def record_unhandled(self) -> None:
+    def record_unhandled(self, message: str) -> None:
         self._records_unhandled += 1
+        self._warnings.append(message)
+
+    @property
+    def warnings(self) -> list[str]:
+        return self._warnings
 
     def result(self) -> Summary:
         elapsed = time.perf_counter() - self._start_time
@@ -73,4 +80,5 @@ class SummaryCollector:
             records_modified=self._records_modified,
             records_written=self._records_written,
             records_unhandled=self._records_unhandled,
+            warnings=self._warnings,
         )

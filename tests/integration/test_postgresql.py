@@ -3,7 +3,7 @@ import pytest
 from testcontainers.postgres import PostgresContainer
 
 from dgkit.cli import app
-from dgkit.models import Artist
+from dgkit.models import Artist, ArtistRef
 from dgkit.writers import PostgresWriter
 
 
@@ -20,15 +20,31 @@ def postgres_dsn(postgres_container):
     return postgres_container.get_connection_url().replace("+psycopg2", "")
 
 
+@pytest.fixture
+def make_artist():
+    """Factory for creating Artist instances with defaults."""
+    def _make(**kwargs):
+        defaults = {
+            "id": 1,
+            "name": "Test",
+            "real_name": None,
+            "profile": None,
+            "data_quality": None,
+        }
+        defaults.update(kwargs)
+        return Artist(**defaults)
+    return _make
+
+
 class TestPostgresWriter:
-    def test_write_single_record(self, postgres_dsn):
-        artist = Artist(
+    def test_write_single_record(self, postgres_dsn, make_artist):
+        artist = make_artist(
             id=1,
             name="Test Artist",
             profile="Test profile",
             real_name="Real Name",
             urls=["https://example.com"],
-            aliases=[100, 200],
+            aliases=[ArtistRef(100, "Alias One"), ArtistRef(200, "Alias Two")],
         )
 
         with PostgresWriter(dsn=postgres_dsn) as writer:
@@ -40,16 +56,16 @@ class TestPostgresWriter:
             assert row == (1, "Test Artist", "Test profile", "Real Name")
 
             cursor = conn.execute(
-                "SELECT artist_id, alias_id FROM artist_alias ORDER BY alias_id"
+                "SELECT artist_id, id, name FROM artist_alias ORDER BY id"
             )
             aliases = cursor.fetchall()
-            assert aliases == [(1, 100), (1, 200)]
+            assert aliases == [(1, 100, "Alias One"), (1, 200, "Alias Two")]
 
-    def test_write_multiple_records(self, postgres_dsn):
+    def test_write_multiple_records(self, postgres_dsn, make_artist):
         artists = [
-            Artist(id=1, name="Artist One", profile=None, real_name=None),
-            Artist(id=2, name="Artist Two", profile="Profile", real_name="Name"),
-            Artist(id=3, name="Artist Three", profile=None, real_name=None),
+            make_artist(id=1, name="Artist One"),
+            make_artist(id=2, name="Artist Two", profile="Profile", real_name="Name"),
+            make_artist(id=3, name="Artist Three"),
         ]
 
         with PostgresWriter(dsn=postgres_dsn) as writer:
@@ -60,13 +76,11 @@ class TestPostgresWriter:
             cursor = conn.execute("SELECT COUNT(*) FROM artist")
             assert cursor.fetchone()[0] == 3
 
-    def test_batch_flush(self, postgres_dsn):
+    def test_batch_flush(self, postgres_dsn, make_artist):
         """Test that records are flushed in batches."""
         with PostgresWriter(dsn=postgres_dsn, batch_size=10) as writer:
             for i in range(25):
-                writer.write(
-                    Artist(id=i, name=f"Artist {i}", profile=None, real_name=None)
-                )
+                writer.write(make_artist(id=i, name=f"Artist {i}"))
 
         with psycopg.connect(postgres_dsn) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM artist")

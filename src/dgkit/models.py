@@ -1,13 +1,23 @@
 from typing import NamedTuple
 
 
+class ArtistRef(NamedTuple):
+    """Reference to another artist (used for aliases, members, groups)."""
+    id: int
+    name: str
+
+
 class Artist(NamedTuple):
     id: int
     name: str | None
-    profile: str | None
     real_name: str | None
+    profile: str | None
+    data_quality: str | None
     urls: list[str] = []
-    aliases: list[int] = []  # List of artist IDs that are aliases
+    name_variations: list[str] = []
+    aliases: list[ArtistRef] = []
+    members: list[ArtistRef] = []
+    groups: list[ArtistRef] = []
 
 
 class Label(NamedTuple):

@@ -49,7 +49,7 @@
 
 ### v0.1.0
 + Add PostgreSQL writer
-- Clean messaging on failure (no debug trace unless enabled by the user)
++ Clean messaging on failure (no debug trace unless enabled by the user)
 - Finalize models
 - Test UX
 - Review code

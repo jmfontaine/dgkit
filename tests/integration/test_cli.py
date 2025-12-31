@@ -1,6 +1,23 @@
 import sqlite3
 
+import pytest
+
 from dgkit.cli import app
+
+
+@pytest.fixture
+def artists_with_unhandled_xml():
+    """Sample artists XML with unhandled fields."""
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<artists>
+    <artist>
+        <id>1</id>
+        <name>Test Artist</name>
+        <realname>Real Name</realname>
+        <profile>Test profile.</profile>
+        <unknown_field>data</unknown_field>
+    </artist>
+</artists>"""
 
 
 class TestConvertCommand:
@@ -25,6 +42,23 @@ class TestConvertCommand:
         assert output_file.exists()
         content = output_file.read_text()
         assert "Test Artist" in content
+
+    def test_convert_strict_mode_panels(
+        self, cli_runner, tmp_gzip_file, artists_with_unhandled_xml
+    ):
+        """Strict mode displays warnings and summary in Rich panels."""
+        gzip_path = tmp_gzip_file(
+            "discogs_20251201_artists.xml.gz", artists_with_unhandled_xml
+        )
+        result = cli_runner.invoke(app, [
+            "convert", str(gzip_path), "-f", "blackhole", "--strict", "--no-progress"
+        ])
+        assert result.exit_code == 0
+        # Check for panel titles
+        assert "Unhandled Data" in result.output
+        assert "Summary" in result.output
+        # Check for actual warning content
+        assert "unknown_field" in result.output
 
 
 class TestLoadCommand:

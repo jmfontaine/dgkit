@@ -4,8 +4,20 @@ from lxml import etree
 from pathlib import Path
 from typing import Iterator
 
-from dgkit.models import Artist, Label, MasterRelease, Release
+from dgkit.models import Artist, ArtistRef, Label, MasterRelease, Release
 from dgkit.types import Parser
+
+
+def _parse_artist_refs(parent: etree._Element | None) -> list[ArtistRef]:
+    """Parse a list of artist references from a parent element."""
+    if parent is None:
+        return []
+    refs = []
+    for name_elem in parent.findall("name"):
+        ref_id = name_elem.get("id")
+        if ref_id and name_elem.text:
+            refs.append(ArtistRef(id=int(ref_id), name=name_elem.text))
+    return refs
 
 
 class ArtistParser:
@@ -20,21 +32,24 @@ class ArtistParser:
             else []
         )
 
-        aliases: list[int] = []
-        aliases_elem = elem.find("aliases")
-        if aliases_elem is not None:
-            for name in aliases_elem.findall("name"):
-                alias_id = name.get("id")
-                if alias_id:
-                    aliases.append(int(alias_id))
+        namevariations_elem = elem.find("namevariations")
+        name_variations = (
+            [n.text for n in namevariations_elem.findall("name") if n.text]
+            if namevariations_elem is not None
+            else []
+        )
 
         yield Artist(
             id=int(elem.findtext("id")),
             name=elem.findtext("name"),
-            profile=elem.findtext("profile"),
             real_name=elem.findtext("realname"),
+            profile=elem.findtext("profile"),
+            data_quality=elem.findtext("data_quality"),
             urls=urls,
-            aliases=aliases,
+            name_variations=name_variations,
+            aliases=_parse_artist_refs(elem.find("aliases")),
+            members=_parse_artist_refs(elem.find("members")),
+            groups=_parse_artist_refs(elem.find("groups")),
         )
 
 

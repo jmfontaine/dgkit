@@ -4,6 +4,10 @@ import typer
 from pathlib import Path
 from typing import Annotated
 
+from rich.console import Console
+from rich.panel import Panel
+
+from dgkit.benchmark import Summary
 from dgkit.filters import Filter, parse_filter, parse_unset
 from dgkit.pipeline import (
     build_database_path,
@@ -15,6 +19,15 @@ from dgkit.types import Compression, DatabaseType, FileFormat
 
 # Global debug flag
 _debug = False
+console = Console()
+
+
+def display_result(result: Summary) -> None:
+    """Display processing result with Rich formatting."""
+    if result.warnings:
+        warnings_text = "\n".join(result.warnings)
+        console.print(Panel(warnings_text, title="Unhandled Data", border_style="yellow"))
+    console.print(Panel(result.display(), title="Summary", border_style="green"))
 
 
 def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
@@ -117,7 +130,7 @@ def convert_cmd(
         strict=strict, fail_on_unhandled=fail_on_unhandled,
     )
     if result:
-        typer.echo(result.display())
+        display_result(result)
 
 
 @app.command(name="load", help="Load data dumps into a database.")
@@ -185,4 +198,4 @@ def load_cmd(
         strict=strict, fail_on_unhandled=fail_on_unhandled,
     )
     if result:
-        typer.echo(result.display())
+        display_result(result)

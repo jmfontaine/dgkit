@@ -1,7 +1,9 @@
 CREATE TABLE artist (
     id INTEGER PRIMARY KEY,
     name TEXT,
-    profile TEXT,
     real_name TEXT,
-    urls TEXT
+    profile TEXT,
+    data_quality TEXT,
+    urls TEXT,
+    name_variations TEXT
 );

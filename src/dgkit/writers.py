@@ -23,6 +23,16 @@ def _get_list_element_type(field_type: type) -> type | None:
     return None
 
 
+def _is_namedtuple(cls: type) -> bool:
+    """Check if a class is a NamedTuple."""
+    return (
+        isinstance(cls, type)
+        and issubclass(cls, tuple)
+        and hasattr(cls, "_fields")
+        and hasattr(cls, "_asdict")
+    )
+
+
 def _singularize(name: str) -> str:
     """Simple singularization: remove trailing 's' or 'es'."""
     if name.endswith("ies"):
@@ -166,8 +176,8 @@ class SqliteWriter:
         self._conn: sqlite3.Connection | None = None
         self._tables: set[str] = set()
         self._buffers: dict[str, list[tuple]] = {}
-        # Cache of junction table info: {(table, field): junction_table_name}
-        self._junction_tables: dict[tuple[str, str], str] = {}
+        # Cache of junction table info: {(table, field): (junction_table_name, elem_type)}
+        self._junction_tables: dict[tuple[str, str], tuple[str, type]] = {}
         # Cache of fields to exclude from main table (junction table fields)
         self._junction_fields: dict[str, set[str]] = {}
 
@@ -197,13 +207,13 @@ class SqliteWriter:
         annotations = type(record).__annotations__
         junction_fields: set[str] = set()
 
-        # Identify junction table fields (list[int])
+        # Identify junction table fields (list[int] or list[NamedTuple])
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is int:
+            if elem_type is int or _is_namedtuple(elem_type):
                 junction_fields.add(field)
-                junction_table = f"{table_name}{_singularize(field)}"
-                self._junction_tables[(table_name, field)] = junction_table
+                junction_table = f"{table_name}_{_singularize(field)}"
+                self._junction_tables[(table_name, field)] = (junction_table, elem_type)
 
         self._junction_fields[table_name] = junction_fields
 
@@ -237,14 +247,14 @@ class SqliteWriter:
 
         # Create junction tables
         for field in junction_fields:
-            junction_table = self._junction_tables[(table_name, field)]
+            junction_table, elem_type = self._junction_tables[(table_name, field)]
             self._conn.execute(f"DROP TABLE IF EXISTS {junction_table}")
 
             sql = _load_sql("sqlite", "tables", junction_table)
             if sql:
                 self._conn.execute(sql)
-            else:
-                # Dynamic junction table: {table}_id, {field_singular}_id
+            elif elem_type is int:
+                # Simple junction table: {table}_id, {field_singular}_id
                 fk_col = f"{table_name}_id"
                 ref_col = f"{_singularize(field)}_id"
                 self._conn.execute(
@@ -252,6 +262,17 @@ class SqliteWriter:
                     f"{fk_col} INTEGER NOT NULL, "
                     f"{ref_col} INTEGER NOT NULL, "
                     f"PRIMARY KEY ({fk_col}, {ref_col}))"
+                )
+            elif _is_namedtuple(elem_type):
+                # NamedTuple junction table: {table}_id + elem fields
+                fk_col = f"{table_name}_id"
+                elem_annotations = elem_type.__annotations__
+                columns = [f"{fk_col} INTEGER NOT NULL"]
+                for elem_field, elem_field_type in elem_annotations.items():
+                    sqlite_type = SQLITE_TYPE_MAP.get(elem_field_type, "TEXT")
+                    columns.append(f"{elem_field} {sqlite_type}")
+                self._conn.execute(
+                    f"CREATE TABLE {junction_table} ({', '.join(columns)})"
                 )
 
             self._tables.add(junction_table)
@@ -308,12 +329,15 @@ class SqliteWriter:
 
         # Insert junction table entries
         for field in junction_fields:
-            junction_table = self._junction_tables[(table_name, field)]
+            junction_table, elem_type = self._junction_tables[(table_name, field)]
             field_idx = record._fields.index(field)
             values = record[field_idx]
             if values:
-                for ref_id in values:
-                    self._buffers[junction_table].append((record_id, ref_id))
+                for item in values:
+                    if elem_type is int:
+                        self._buffers[junction_table].append((record_id, item))
+                    elif _is_namedtuple(elem_type):
+                        self._buffers[junction_table].append((record_id, *item))
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
 
@@ -338,7 +362,7 @@ class PostgresWriter:
         self._conn: "psycopg.Connection | None" = None
         self._tables: set[str] = set()
         self._buffers: dict[str, list[tuple]] = {}
-        self._junction_tables: dict[tuple[str, str], str] = {}
+        self._junction_tables: dict[tuple[str, str], tuple[str, type]] = {}
         self._junction_fields: dict[str, set[str]] = {}
         self._table_columns: dict[str, list[str]] = {}
 
@@ -367,10 +391,10 @@ class PostgresWriter:
 
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is int:
+            if elem_type is int or _is_namedtuple(elem_type):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
-                self._junction_tables[(table_name, field)] = junction_table
+                self._junction_tables[(table_name, field)] = (junction_table, elem_type)
 
         self._junction_fields[table_name] = junction_fields
 
@@ -403,13 +427,13 @@ class PostgresWriter:
         self._buffers[table_name] = []
 
         for field in junction_fields:
-            junction_table = self._junction_tables[(table_name, field)]
+            junction_table, elem_type = self._junction_tables[(table_name, field)]
             self._conn.execute(f"DROP TABLE IF EXISTS {junction_table} CASCADE")
 
             sql = _load_sql("postgresql", "tables", junction_table)
             if sql:
                 self._conn.execute(sql)
-            else:
+            elif elem_type is int:
                 fk_col = f"{table_name}_id"
                 ref_col = f"{_singularize(field)}_id"
                 self._conn.execute(
@@ -419,6 +443,19 @@ class PostgresWriter:
                     f"PRIMARY KEY ({fk_col}, {ref_col}))"
                 )
                 self._table_columns[junction_table] = [fk_col, ref_col]
+            elif _is_namedtuple(elem_type):
+                fk_col = f"{table_name}_id"
+                elem_annotations = elem_type.__annotations__
+                columns = [f"{fk_col} BIGINT NOT NULL"]
+                column_names = [fk_col]
+                for elem_field, elem_field_type in elem_annotations.items():
+                    pg_type = POSTGRES_TYPE_MAP.get(elem_field_type, "TEXT")
+                    columns.append(f"{elem_field} {pg_type}")
+                    column_names.append(elem_field)
+                self._conn.execute(
+                    f"CREATE TABLE {junction_table} ({', '.join(columns)})"
+                )
+                self._table_columns[junction_table] = column_names
 
             self._tables.add(junction_table)
             self._buffers[junction_table] = []
@@ -482,12 +519,15 @@ class PostgresWriter:
             self._flush(table_name)
 
         for field in junction_fields:
-            junction_table = self._junction_tables[(table_name, field)]
+            junction_table, elem_type = self._junction_tables[(table_name, field)]
             field_idx = record._fields.index(field)
             values = record[field_idx]
             if values:
-                for ref_id in values:
-                    self._buffers[junction_table].append((record_id, ref_id))
+                for item in values:
+                    if elem_type is int:
+                        self._buffers[junction_table].append((record_id, item))
+                    elif _is_namedtuple(elem_type):
+                        self._buffers[junction_table].append((record_id, *item))
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
 
