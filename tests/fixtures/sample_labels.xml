@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<labels>
+    <label>
+        <id>1</id>
+        <name>Test Label</name>
+    </label>
+    <label>
+        <id>2</id>
+        <name>Another Label</name>
+    </label>
+</labels>

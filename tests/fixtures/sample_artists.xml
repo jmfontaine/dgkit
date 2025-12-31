@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<artists>
+    <artist>
+        <id>1</id>
+        <name>Test Artist</name>
+        <realname>Real Name</realname>
+        <profile>Test profile text.</profile>
+        <aliases>
+            <name id="100">Alias One</name>
+            <name id="200">Alias Two</name>
+        </aliases>
+        <urls>
+            <url>https://example.com</url>
+        </urls>
+    </artist>
+    <artist>
+        <id>2</id>
+        <name>Another Artist</name>
+        <realname></realname>
+        <profile></profile>
+        <urls></urls>
+    </artist>
+</artists>
