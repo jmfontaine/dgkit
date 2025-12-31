@@ -83,17 +83,11 @@ Fixed import ordering in:
 
 ## Low Priority
 
-### 7. Clarify Single-Iteration Loop (parsers.py:239)
+### 7. ~~Clarify Single-Iteration Loop (parsers.py)~~ N/A
 
+Pattern doesn't exist in current code. Already uses proper approach:
 ```python
-# Current - confusing loop that only runs once
-for _ in elem.findall("tracklist"):
-    tracks = ...
-
-# Proposed - explicit optional handling
-tracklist = elem.find("tracklist")
-if tracklist is not None:
-    tracks = ...
+tracklist=_parse_tracks(elem.find("tracklist"))  # _parse_tracks handles None
 ```
 
 ### 8. Use `sys.exit()` Instead of `raise SystemExit(1)` (cli.py:49)
@@ -106,18 +100,14 @@ raise SystemExit(1)
 sys.exit(1)
 ```
 
-### 9. Consider Abstract Base Class for Database Writers
+### 9. ~~Consider Abstract Base Class for Database Writers~~ NOT IMPLEMENTED
 
-`SqliteWriter` and `PostgresWriter` share significant structure. An ABC could formalize the interface:
+Reviewed and decided against. While `SqliteWriter` and `PostgresWriter` share some structure (`_flush_all`, `_create_indices`, `write`), the differences are fundamental:
+- Connection handling (sqlite3 vs psycopg)
+- Flushing (INSERT vs COPY protocol)
+- Type maps and column tracking
 
-```python
-class DatabaseWriter(ABC):
-    @abstractmethod
-    def _get_connection(self) -> Any: ...
-
-    @abstractmethod
-    def _create_table(self, name: str, fields: list) -> None: ...
-```
+An ABC would add complexity without meaningful code reduction. The `Writer` Protocol in `types.py` already provides the interface contract.
 
 ## Not Recommended
 
