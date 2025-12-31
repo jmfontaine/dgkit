@@ -29,6 +29,13 @@ from dgkit.models import (
 from dgkit.types import Parser
 
 
+def _parse_text_list(parent: etree._Element | None, tag: str) -> list[str]:
+    """Parse a list of text elements from a parent."""
+    if parent is None:
+        return []
+    return [elem.text for elem in parent.findall(tag) if elem.text]
+
+
 def _parse_data_quality(elem: etree._Element) -> DataQuality | None:
     """Parse data_quality field, converting to enum."""
     text = elem.findtext("data_quality")
@@ -58,20 +65,6 @@ class ArtistParser:
 
     def parse(self, elem: etree._Element) -> Iterator[Artist]:
         """Parse artist XML element into Artist record."""
-        urls_elem = elem.find("urls")
-        urls = (
-            [url.text for url in urls_elem.findall("url") if url.text]
-            if urls_elem is not None
-            else []
-        )
-
-        namevariations_elem = elem.find("namevariations")
-        name_variations = (
-            [n.text for n in namevariations_elem.findall("name") if n.text]
-            if namevariations_elem is not None
-            else []
-        )
-
         yield Artist(
             id=int(elem.findtext("id")),
             data_quality=_parse_data_quality(elem),
@@ -81,8 +74,8 @@ class ArtistParser:
             aliases=_parse_artist_refs(elem.find("aliases")),
             groups=_parse_artist_refs(elem.find("groups")),
             members=_parse_artist_refs(elem.find("members")),
-            name_variations=name_variations,
-            urls=urls,
+            name_variations=_parse_text_list(elem.find("namevariations"), "name"),
+            urls=_parse_text_list(elem.find("urls"), "url"),
         )
 
 
@@ -103,13 +96,6 @@ class LabelParser:
 
     def parse(self, elem: etree._Element) -> Iterator[Label]:
         """Parse label XML element into Label record."""
-        urls_elem = elem.find("urls")
-        urls = (
-            [url.text for url in urls_elem.findall("url") if url.text]
-            if urls_elem is not None
-            else []
-        )
-
         parent_label_elem = elem.find("parentLabel")
         parent_label = None
         if parent_label_elem is not None:
@@ -125,7 +111,7 @@ class LabelParser:
             profile=elem.findtext("profile"),
             parent_label=parent_label,
             sub_labels=_parse_label_refs(elem.find("sublabels")),
-            urls=urls,
+            urls=_parse_text_list(elem.find("urls"), "url"),
         )
 
 
@@ -201,19 +187,15 @@ def _parse_formats(parent: etree._Element | None) -> list[Format]:
         name = format_elem.get("name")
         quantity_text = format_elem.get("qty")
         text = format_elem.get("text")
-        descriptions_elem = format_elem.find("descriptions")
-        descriptions = (
-            [d.text for d in descriptions_elem.findall("description") if d.text]
-            if descriptions_elem is not None
-            else []
-        )
         if name and quantity_text:
             formats.append(
                 Format(
                     name=FormatName(name),
                     quantity=int(quantity_text),
                     text=text,
-                    descriptions=descriptions,
+                    descriptions=_parse_text_list(
+                        format_elem.find("descriptions"), "description"
+                    ),
                 )
             )
     return formats
@@ -354,16 +336,12 @@ def _parse_videos(parent: etree._Element | None) -> list[Video]:
 
 def _parse_genres(parent: etree._Element | None) -> list[str]:
     """Parse genres list."""
-    if parent is None:
-        return []
-    return [g.text for g in parent.findall("genre") if g.text]
+    return _parse_text_list(parent, "genre")
 
 
 def _parse_styles(parent: etree._Element | None) -> list[str]:
     """Parse styles list."""
-    if parent is None:
-        return []
-    return [s.text for s in parent.findall("style") if s.text]
+    return _parse_text_list(parent, "style")
 
 
 class MasterReleaseParser:
