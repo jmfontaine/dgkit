@@ -44,7 +44,10 @@
 
 - How to check if the XML element has nodes or attributes we did not extract to the model? I want to make sure that the model represents the raw XML data accurately. Discogs data can be weird at times so I would like to have a way to catch unhandled edge cases. I am afraid it would hurt performance so it might have to be an option that is disabled by default. Maybe `--paranoia` or `--throrough`.
 
+
+
 - How to handle property values that are actually enums in disguise? For example the `dataquality` property has a small fixed number of values. Storing them as string is a waste of space.
+- Should we offer an option to normalize the data in the file writers to avoid bloating them with duplicated data?
 
 
 ### v0.1.0
@@ -57,10 +60,10 @@
 - Update tests
 - Create QA pipeline
 - Create publish pipeline
+- Benchmark against alternatives
 - Package release
 
 ### v0.2.0
-- Benchmark against alternatives
 - Optimize imports for optional features
 
 ### v0.3.0

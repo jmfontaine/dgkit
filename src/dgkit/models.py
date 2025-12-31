@@ -37,12 +37,78 @@ class Label(NamedTuple):
     parent_label: LabelRef | None = None
 
 
-class MasterArtist(NamedTuple):
-    """Artist credit on a master release."""
+class CreditArtist(NamedTuple):
+    """Artist credit on a release or master (id, name, anv, join)."""
     id: int
     name: str
     anv: str | None
     join: str | None
+
+
+class ExtraArtist(NamedTuple):
+    """Extra artist credit with role (producer, engineer, etc.)."""
+    id: int | None
+    name: str
+    anv: str | None
+    role: str | None
+    tracks: str | None
+
+
+class ReleaseLabel(NamedTuple):
+    """Label credit on a release."""
+    id: int
+    name: str
+    catno: str | None
+
+
+class Format(NamedTuple):
+    """Physical format of a release."""
+    name: str
+    qty: int
+    text: str | None
+    descriptions: list[str] = []
+
+
+class SubTrack(NamedTuple):
+    """Sub-track within a track (movements, sections)."""
+    position: str | None
+    title: str | None
+    duration: str | None
+    artists: list[CreditArtist] = []
+    extraartists: list[ExtraArtist] = []
+
+
+class Track(NamedTuple):
+    """Track on a release."""
+    position: str | None
+    title: str | None
+    duration: str | None
+    artists: list[CreditArtist] = []
+    extraartists: list[ExtraArtist] = []
+    sub_tracks: list[SubTrack] = []
+
+
+class Identifier(NamedTuple):
+    """Identifier like barcode, matrix, etc."""
+    type: str
+    description: str | None
+    value: str
+
+
+class Company(NamedTuple):
+    """Company credit on a release."""
+    id: int
+    name: str
+    catno: str | None
+    entity_type: int | None
+    entity_type_name: str | None
+
+
+class Series(NamedTuple):
+    """Series a release belongs to."""
+    id: int
+    name: str
+    catno: str | None
 
 
 class Video(NamedTuple):
@@ -61,7 +127,7 @@ class MasterRelease(NamedTuple):
     year: int | None
     notes: str | None
     data_quality: str | None
-    artists: list[MasterArtist] = []
+    artists: list[CreditArtist] = []
     genres: list[str] = []
     styles: list[str] = []
     videos: list[Video] = []
@@ -69,4 +135,22 @@ class MasterRelease(NamedTuple):
 
 class Release(NamedTuple):
     id: int
+    status: str | None
     title: str | None
+    country: str | None
+    released: str | None
+    notes: str | None
+    data_quality: str | None
+    master_id: int | None
+    is_main_release: bool | None
+    artists: list[CreditArtist] = []
+    labels: list[ReleaseLabel] = []
+    extraartists: list[ExtraArtist] = []
+    formats: list[Format] = []
+    genres: list[str] = []
+    styles: list[str] = []
+    tracklist: list[Track] = []
+    identifiers: list[Identifier] = []
+    videos: list[Video] = []
+    companies: list[Company] = []
+    series: list[Series] = []

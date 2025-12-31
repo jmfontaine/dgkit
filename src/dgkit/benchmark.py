@@ -3,6 +3,17 @@ from dataclasses import dataclass, field
 from typing import Self
 
 
+def _format_duration(seconds: float) -> str:
+    """Format seconds into human-readable duration."""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes, secs = divmod(int(seconds), 60)
+    if minutes < 60:
+        return f"{minutes}m {secs}s"
+    hours, mins = divmod(minutes, 60)
+    return f"{hours}h {mins}m {secs}s"
+
+
 @dataclass
 class Summary:
     elapsed_seconds: float
@@ -28,9 +39,8 @@ class Summary:
         ]
         if self.records_unhandled > 0:
             lines.append(f"Unhandled: {self.records_unhandled:,}")
-        lines.append(
-            f"Time:      {self.elapsed_seconds:.2f}s ({self.records_per_second:,.0f} records/sec)"
-        )
+        duration = _format_duration(self.elapsed_seconds)
+        lines.append(f"Time:      {duration} ({self.records_per_second:,.0f} records/sec)")
         return "\n".join(lines)
 
 
