@@ -8,11 +8,15 @@ from rich.progress import (
     BarColumn,
     DownloadColumn,
     Progress,
+    ProgressColumn,
+    Task,
     TaskID,
     TextColumn,
+    TimeElapsedColumn,
     TimeRemainingColumn,
     TransferSpeedColumn,
 )
+from rich.text import Text
 
 from dgkit.benchmark import Summary, SummaryCollector
 from dgkit.filters import Filter, FilterChain
@@ -55,6 +59,17 @@ def is_trackable(reader: Reader) -> bool:
     return hasattr(reader, "bytes_read") and hasattr(reader, "total_size")
 
 
+class ElementCountColumn(ProgressColumn):
+    """Progress column showing completed/total with thousands separators."""
+
+    def render(self, task: Task) -> Text:
+        completed = int(task.completed)
+        total = int(task.total) if task.total is not None else "?"
+        if isinstance(total, int):
+            return Text(f"{completed:,}/{total:,}", style="progress.download")
+        return Text(f"{completed:,}/{total}", style="progress.download")
+
+
 def execute(
     *,
     path: Path,
@@ -64,10 +79,11 @@ def execute(
     limit: int | None,
     filter: Filter | None = None,
     summary: SummaryCollector | None = None,
-    on_progress: Callable[[int], None] | None = None,
+    on_progress_bytes: Callable[[int], None] | None = None,
+    on_progress_element: Callable[[], None] | None = None,
 ):
     """Execute the pipeline."""
-    trackable = on_progress is not None and is_trackable(reader)
+    track_bytes = on_progress_bytes is not None and is_trackable(reader)
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
             for record in parser.parse(elem):
@@ -78,8 +94,10 @@ def execute(
                 writer.write(record)
                 if summary:
                     summary.count()
-            if trackable:
-                on_progress(reader.bytes_read)  # type: ignore[union-attr]
+            if track_bytes:
+                on_progress_bytes(reader.bytes_read)  # type: ignore[union-attr]
+            if on_progress_element:
+                on_progress_element()
 
 
 COMPRESSION_EXTENSIONS: dict[Compression, str] = {
@@ -89,13 +107,24 @@ COMPRESSION_EXTENSIONS: dict[Compression, str] = {
 }
 
 
-def create_progress() -> Progress:
-    """Create a Rich Progress bar for file processing."""
+def create_progress_bytes() -> Progress:
+    """Create a Rich Progress bar for byte-based file processing."""
     return Progress(
         TextColumn("[bold blue]{task.description}"),
         BarColumn(),
         DownloadColumn(),
         TransferSpeedColumn(),
+        TimeRemainingColumn(),
+    )
+
+
+def create_progress_elements() -> Progress:
+    """Create a Rich Progress bar for element-based processing."""
+    return Progress(
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        ElementCountColumn(),
+        TimeElapsedColumn(),
         TimeRemainingColumn(),
     )
 
@@ -143,26 +172,37 @@ def convert(
     if summary:
         summary.__enter__()
 
-    total_size = sum(p.stat().st_size for p in valid_paths) if show_progress else 0
-    progress = create_progress() if show_progress else None
+    # Use element-based progress when limit is set, bytes-based otherwise
+    use_element_progress = limit is not None
+    progress: Progress | None = None
     task_id: TaskID | None = None
 
-    if progress:
+    if show_progress:
+        if use_element_progress:
+            total = limit * len(valid_paths)
+            progress = create_progress_elements()
+        else:
+            total = sum(p.stat().st_size for p in valid_paths)
+            progress = create_progress_bytes()
         progress.start()
-        task_id = progress.add_task("Processing", total=total_size)
+        task_id = progress.add_task("Processing", total=total)
 
     try:
         bytes_completed = 0
 
-        def on_progress(bytes_read: int) -> None:
+        def on_progress_bytes(bytes_read: int) -> None:
             nonlocal bytes_completed
             if progress and task_id is not None:
                 progress.update(task_id, completed=bytes_completed + bytes_read)
 
+        def on_progress_element() -> None:
+            if progress and task_id is not None:
+                progress.advance(task_id)
+
         if writer_cls.aggregates_inputs:
             with get_file_writer(format, path=None) as writer:
                 for path in valid_paths:
-                    reader = TrackingGzipReader() if show_progress else GzipReader()
+                    reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
                     parser = get_parser(path)
                     execute(
                         limit=limit,
@@ -172,12 +212,13 @@ def convert(
                         writer=writer,
                         filter=filter,
                         summary=summary,
-                        on_progress=on_progress if show_progress else None,
+                        on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
+                        on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
                     )
                     bytes_completed += path.stat().st_size
         else:
             for path in valid_paths:
-                reader = TrackingGzipReader() if show_progress else GzipReader()
+                reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
                 parser = get_parser(path)
                 output_path = build_output_path(path, format, output_dir, compression)
                 with get_file_writer(
@@ -191,7 +232,8 @@ def convert(
                         writer=writer,
                         filter=filter,
                         summary=summary,
-                        on_progress=on_progress if show_progress else None,
+                        on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
+                        on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
                     )
                 bytes_completed += path.stat().st_size
     finally:
@@ -219,25 +261,36 @@ def load(
     if summary:
         summary.__enter__()
 
-    total_size = sum(p.stat().st_size for p in valid_paths) if show_progress else 0
-    progress = create_progress() if show_progress else None
+    # Use element-based progress when limit is set, bytes-based otherwise
+    use_element_progress = limit is not None
+    progress: Progress | None = None
     task_id: TaskID | None = None
 
-    if progress:
+    if show_progress:
+        if use_element_progress:
+            total = limit * len(valid_paths)
+            progress = create_progress_elements()
+        else:
+            total = sum(p.stat().st_size for p in valid_paths)
+            progress = create_progress_bytes()
         progress.start()
-        task_id = progress.add_task("Processing", total=total_size)
+        task_id = progress.add_task("Processing", total=total)
 
     try:
         bytes_completed = 0
 
-        def on_progress(bytes_read: int) -> None:
+        def on_progress_bytes(bytes_read: int) -> None:
             nonlocal bytes_completed
             if progress and task_id is not None:
                 progress.update(task_id, completed=bytes_completed + bytes_read)
 
+        def on_progress_element() -> None:
+            if progress and task_id is not None:
+                progress.advance(task_id)
+
         with get_database_writer(database, dsn=dsn, batch_size=batch_size) as writer:
             for path in valid_paths:
-                reader = TrackingGzipReader() if show_progress else GzipReader()
+                reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
                 parser = get_parser(path)
                 execute(
                     limit=limit,
@@ -247,7 +300,8 @@ def load(
                     writer=writer,
                     filter=filter,
                     summary=summary,
-                    on_progress=on_progress if show_progress else None,
+                    on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
+                    on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
                 )
                 bytes_completed += path.stat().st_size
     finally:

@@ -38,7 +38,23 @@
 - Should the `load` command take a DSN string as input or options (e.g., --host --db --user --port --pwd)?
 
 
-- How to best provide various levels of information to the user about operations?
 - The parsers should not yield multiple record types. Each entity type should be a single record. It is up to the writers to split that record into multiple records if required by the destination. Splitting records up at the parser level means that writers that can handle records with nested data have to merge the records back.
+
+
+- How to best provide various levels of information to the user about operations?
 - Have the `--summary` option measure the number of XML elements processed to align with the `--limit` option and avoid having a limit of 1000 but see 2345 records processed in the summary which is confusing.
 - Maybe the SQLite writer should not use `--dsn` but `--path`.
+
+### v0.1.0
+- Finalize models
+- Test UX
+- Review code
+- Run linters
+- Update tests
+- Create QA pipeline
+- Create publish pipeline
+- Package release
+
+### v0.2.0
+- Add PostgreSQL writer
+- Benchmark against alternatives
