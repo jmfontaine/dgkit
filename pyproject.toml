@@ -1,13 +1,13 @@
 [build-system]
 build-backend = "uv_build"
-requires = [ "uv-build>=0.9.18,<0.10" ]
+requires = ["uv-build>=0.9.18,<0.10"]
 
 [project]
 name = "dgkit"
 version = "0.1.0"
 description = "Discogs Toolkit"
 readme = "README.md"
-authors = [ { name = "Jean-Marc Fontaine", email = "jm@jmfontaine.net" } ]
+authors = [{ name = "Jean-Marc Fontaine", email = "jm@jmfontaine.net" }]
 requires-python = ">=3.10"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
@@ -34,20 +34,24 @@ dev = [
   "ruff>=0.14.10",
   "sqlfluff>=3.5",
 ]
-test = [
-  "testcontainers[postgres]>=4.13.3",
-]
+test = ["testcontainers[postgres]>=4.13.3"]
+
+[tool.pyproject-fmt]
+column_width = 88
+keep_full_version = true
 
 [tool.pytest.ini_options]
-testpaths = [ "tests" ]
+testpaths = ["tests"]
 addopts = "-v"
 filterwarnings = [
-  # KLUDGE: testcontainers internal deprecation - https://github.com/testcontainers/testcontainers-python/issues/726
+  # KLUDGE: testcontainers internal deprecation
+  # See: https://github.com/testcontainers/testcontainers-python/issues/726
   "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning",
 ]
 
 [tool.coverage.run]
-source = [ "dgkit" ]
+source = ["dgkit"]
 
 [tool.coverage.report]
-exclude_lines = [ "pragma: no cover", "if TYPE_CHECKING:" ]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]
+

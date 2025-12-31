@@ -1,13 +1,21 @@
 {
   "cSpell.words": [
+    "addopts",
     "blackhole",
     "dgkit",
+    "Discogs",
+    "filterwarnings",
     "Fontaine",
     "getprevious",
     "lxml",
+    "psycopg",
     "pycache",
+    "pyparsing",
     "pyproject",
     "pytest",
+    "sqlfluff",
+    "testcontainers",
+    "testpaths",
     "tracklist",
     "typer",
     "venv"

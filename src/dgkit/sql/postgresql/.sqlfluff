@@ -1,0 +1,5 @@
+[sqlfluff]
+dialect = postgres
+# RF04: 'name' is a type in PostgreSQL but valid as column identifier
+# RF06: 'release' quoting differs between SQLite and PostgreSQL
+exclude_rules = RF04, RF06

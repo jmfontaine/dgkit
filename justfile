@@ -13,9 +13,15 @@ format:
     ruff format
     pyproject-fmt
 
+# Fix fixable source code defects
+fix:
+    ruff check --fix
+    sqlfluff fix src/dgkit/sql
+
 # Check source code for defects
-lint *args:
-    ruff check {{ args }}
+lint:
+    ruff check
+    sqlfluff lint src/dgkit/sql
 
 # Run all tests
 test:

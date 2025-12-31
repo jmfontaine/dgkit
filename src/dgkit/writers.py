@@ -473,17 +473,18 @@ class PostgresWriter:
 
         self._conn.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
 
+        # Track column names for COPY (excluding junction fields)
+        column_names = [f for f in record._fields if f not in junction_fields]
+        self._table_columns[table_name] = column_names
+
         sql = _load_sql("postgresql", "tables", table_name)
         if sql:
             self._conn.execute(sql)
         else:
-            fields = record._fields
             columns = []
-            column_names = []
-            for i, field in enumerate(fields):
+            for i, field in enumerate(record._fields):
                 if field in junction_fields:
                     continue
-                column_names.append(field)
                 field_type = annotations.get(field, str)
                 if hasattr(field_type, "__origin__"):
                     args = getattr(field_type, "__args__", ())
@@ -494,7 +495,6 @@ class PostgresWriter:
                 else:
                     columns.append(f"{field} {pg_type}")
             self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
-            self._table_columns[table_name] = column_names
 
         self._tables.add(table_name)
         self._buffers[table_name] = []
@@ -503,11 +503,20 @@ class PostgresWriter:
             junction_table, elem_type = self._junction_tables[(table_name, field)]
             self._conn.execute(f"DROP TABLE IF EXISTS {junction_table} CASCADE")
 
+            fk_col = f"{table_name}_id"
+            if elem_type is int:
+                ref_col = f"{_singularize(field)}_id"
+                junction_columns = [fk_col, ref_col]
+            elif _is_namedtuple(elem_type):
+                junction_columns = [fk_col] + list(elem_type._fields)
+            else:
+                junction_columns = [fk_col]
+            self._table_columns[junction_table] = junction_columns
+
             sql = _load_sql("postgresql", "tables", junction_table)
             if sql:
                 self._conn.execute(sql)
             elif elem_type is int:
-                fk_col = f"{table_name}_id"
                 ref_col = f"{_singularize(field)}_id"
                 self._conn.execute(
                     f"CREATE TABLE {junction_table} ("
@@ -515,20 +524,15 @@ class PostgresWriter:
                     f"{ref_col} BIGINT NOT NULL, "
                     f"PRIMARY KEY ({fk_col}, {ref_col}))"
                 )
-                self._table_columns[junction_table] = [fk_col, ref_col]
             elif _is_namedtuple(elem_type):
-                fk_col = f"{table_name}_id"
                 elem_annotations = elem_type.__annotations__
                 columns = [f"{fk_col} BIGINT NOT NULL"]
-                column_names = [fk_col]
                 for elem_field, elem_field_type in elem_annotations.items():
                     pg_type = POSTGRES_TYPE_MAP.get(elem_field_type, "TEXT")
                     columns.append(f"{elem_field} {pg_type}")
-                    column_names.append(elem_field)
                 self._conn.execute(
                     f"CREATE TABLE {junction_table} ({', '.join(columns)})"
                 )
-                self._table_columns[junction_table] = column_names
 
             self._tables.add(junction_table)
             self._buffers[junction_table] = []
