@@ -32,7 +32,6 @@ from dgkit.types import (
 )
 from dgkit.validation import TrackingElement, UnhandledElementError
 from dgkit.writers import (
-    DATABASE_WRITERS,
     FILE_WRITERS,
     get_database_writer,
     get_file_writer,

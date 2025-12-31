@@ -1,6 +1,6 @@
 import pytest
 
-from dgkit.filters import ExpressionFilter, UnsetFields, FilterChain, parse_filter
+from dgkit.filters import UnsetFields, FilterChain, parse_filter
 from dgkit.models import Artist
 
 

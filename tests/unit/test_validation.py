@@ -1,5 +1,4 @@
 from lxml import etree
-import pytest
 
 from dgkit.validation import TrackingElement, UnhandledElementError
 
