@@ -75,12 +75,11 @@ def parse_unset(values: list[str]) -> UnsetFields | None:
     return UnsetFields(fields) if fields else None
 ```
 
-### 6. Consolidate Import Grouping Style
+### 6. ~~Consolidate Import Grouping Style~~ DONE
 
-Some files separate stdlib imports into multiple groups. Standardize to:
-1. stdlib (one block, alphabetical)
-2. third-party (one block, alphabetical)
-3. local (one block, alphabetical)
+Fixed import ordering in:
+- `parsers.py`: Moved `from pathlib import Path` before third-party imports
+- `writers.py`: Consolidated stdlib imports into one block (removed stray blank line)
 
 ## Low Priority
 

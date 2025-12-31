@@ -3,10 +3,9 @@ import gzip
 import json
 import sqlite3
 from importlib.resources import files
-from urllib.parse import urlparse
-
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, NamedTuple, Self, get_args, get_origin
+from urllib.parse import urlparse
 
 from dgkit.types import Compression, DatabaseType, FileFormat, Writer
 
