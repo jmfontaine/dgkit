@@ -30,19 +30,21 @@ with ExitStack() as stack:
 
 Refactored both `convert()` and `load()` functions.
 
-### 3. Extract Common Progress Setup (pipeline.py)
+### 3. ~~Extract Common Progress Setup (pipeline.py)~~ DONE
 
-`convert()` and `load()` share ~30 lines of identical progress bar setup. Extract to helper:
-
+Created `ProgressTracker` class to encapsulate all progress-related logic:
 ```python
-def _setup_progress(
-    show_progress: bool,
-    limit: int | None,
-    valid_paths: list[Path],
-) -> tuple[Progress | None, TaskID | None, bool]:
-    """Set up progress bar, returning (progress, task_id, use_element_progress)."""
-    ...
+class ProgressTracker:
+    def __init__(self, stack, limit, show_progress, valid_paths): ...
+    def get_reader(self) -> Reader: ...
+    def advance_file(self, path: Path) -> None: ...
+    @property
+    def bytes_callback(self) -> Callable[[int], None] | None: ...
+    @property
+    def element_callback(self) -> Callable[[], None] | None: ...
 ```
+
+Reduced `convert()` from 55 lines to 35 lines, `load()` from 45 lines to 28 lines.
 
 ## Medium Priority
 

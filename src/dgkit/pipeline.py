@@ -156,6 +156,67 @@ def create_progress_elements() -> Progress:
     )
 
 
+class ProgressTracker:
+    """Encapsulates progress bar setup and callbacks."""
+
+    def __init__(
+        self,
+        stack: ExitStack,
+        limit: int | None,
+        show_progress: bool,
+        valid_paths: list[Path],
+    ):
+        self._use_elements = limit is not None
+        self._show_progress = show_progress
+        self._bytes_completed = 0
+        self._progress: Progress | None = None
+        self._task_id: TaskID | None = None
+
+        if show_progress:
+            if self._use_elements:
+                total = limit * len(valid_paths)
+                self._progress = stack.enter_context(create_progress_elements())
+            else:
+                total = sum(p.stat().st_size for p in valid_paths)
+                self._progress = stack.enter_context(create_progress_bytes())
+            self._task_id = self._progress.add_task("Processing", total=total)
+
+    @property
+    def use_tracking_reader(self) -> bool:
+        """Whether to use a tracking reader for byte-based progress."""
+        return self._show_progress and not self._use_elements
+
+    def get_reader(self) -> Reader:
+        """Get the appropriate reader based on progress tracking needs."""
+        return TrackingGzipReader() if self.use_tracking_reader else GzipReader()
+
+    def on_bytes(self, bytes_read: int) -> None:
+        """Callback for byte-based progress updates."""
+        if self._progress and self._task_id is not None:
+            self._progress.update(
+                self._task_id, completed=self._bytes_completed + bytes_read
+            )
+
+    def on_element(self) -> None:
+        """Callback for element-based progress updates."""
+        if self._progress and self._task_id is not None:
+            self._progress.advance(self._task_id)
+
+    def advance_file(self, path: Path) -> None:
+        """Update bytes_completed after processing a file."""
+        self._bytes_completed += path.stat().st_size
+
+    @property
+    def bytes_callback(self) -> Callable[[int], None] | None:
+        """Get bytes callback if byte-based progress is active."""
+        return self.on_bytes if self.use_tracking_reader else None
+
+    @property
+    def element_callback(self) -> Callable[[], None] | None:
+        """Get element callback if element-based progress is active."""
+        return self.on_element if (self._show_progress and self._use_elements) else None
+
+
 def build_output_path(
     input_path: Path,
     format: FileFormat,
@@ -197,61 +258,33 @@ def convert(
     writer_cls = FILE_WRITERS[format]
     filter = FilterChain(filters) if filters else None
 
-    # Use element-based progress when limit is set, bytes-based otherwise
-    use_element_progress = limit is not None
-
     with ExitStack() as stack:
         summary = (
             stack.enter_context(SummaryCollector(options={"strict": strict}))
             if show_summary
             else None
         )
-
-        progress: Progress | None = None
-        task_id: TaskID | None = None
-        if show_progress:
-            if use_element_progress:
-                total = limit * len(valid_paths)
-                progress = stack.enter_context(create_progress_elements())
-            else:
-                total = sum(p.stat().st_size for p in valid_paths)
-                progress = stack.enter_context(create_progress_bytes())
-            task_id = progress.add_task("Processing", total=total)
-
-        bytes_completed = 0
-
-        def on_progress_bytes(bytes_read: int) -> None:
-            nonlocal bytes_completed
-            if progress and task_id is not None:
-                progress.update(task_id, completed=bytes_completed + bytes_read)
-
-        def on_progress_element() -> None:
-            if progress and task_id is not None:
-                progress.advance(task_id)
+        tracker = ProgressTracker(stack, limit, show_progress, valid_paths)
 
         if writer_cls.aggregates_inputs:
             with get_file_writer(format, path=None) as writer:
                 for path in valid_paths:
-                    reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
-                    parser = get_parser(path)
                     execute(
                         fail_on_unhandled=fail_on_unhandled,
                         filter=filter,
                         limit=limit,
-                        on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
-                        on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
-                        parser=parser,
+                        on_progress_bytes=tracker.bytes_callback,
+                        on_progress_element=tracker.element_callback,
+                        parser=get_parser(path),
                         path=path,
-                        reader=reader,
+                        reader=tracker.get_reader(),
                         strict=strict,
                         summary=summary,
                         writer=writer,
                     )
-                    bytes_completed += path.stat().st_size
+                    tracker.advance_file(path)
         else:
             for path in valid_paths:
-                reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
-                parser = get_parser(path)
                 output_path = build_output_path(path, format, output_dir, compression)
                 with get_file_writer(
                     format, compression=compression, path=output_path
@@ -260,16 +293,16 @@ def convert(
                         fail_on_unhandled=fail_on_unhandled,
                         filter=filter,
                         limit=limit,
-                        on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
-                        on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
-                        parser=parser,
+                        on_progress_bytes=tracker.bytes_callback,
+                        on_progress_element=tracker.element_callback,
+                        parser=get_parser(path),
                         path=path,
-                        reader=reader,
+                        reader=tracker.get_reader(),
                         strict=strict,
                         summary=summary,
                         writer=writer,
                     )
-                bytes_completed += path.stat().st_size
+                tracker.advance_file(path)
 
         return summary.result() if summary else None
 
@@ -290,55 +323,29 @@ def load(
     valid_paths = [p for p in paths if p.is_file()]
     filter = FilterChain(filters) if filters else None
 
-    # Use element-based progress when limit is set, bytes-based otherwise
-    use_element_progress = limit is not None
-
     with ExitStack() as stack:
         summary = (
             stack.enter_context(SummaryCollector(options={"strict": strict}))
             if show_summary
             else None
         )
-
-        progress: Progress | None = None
-        task_id: TaskID | None = None
-        if show_progress:
-            if use_element_progress:
-                total = limit * len(valid_paths)
-                progress = stack.enter_context(create_progress_elements())
-            else:
-                total = sum(p.stat().st_size for p in valid_paths)
-                progress = stack.enter_context(create_progress_bytes())
-            task_id = progress.add_task("Processing", total=total)
-
-        bytes_completed = 0
-
-        def on_progress_bytes(bytes_read: int) -> None:
-            nonlocal bytes_completed
-            if progress and task_id is not None:
-                progress.update(task_id, completed=bytes_completed + bytes_read)
-
-        def on_progress_element() -> None:
-            if progress and task_id is not None:
-                progress.advance(task_id)
+        tracker = ProgressTracker(stack, limit, show_progress, valid_paths)
 
         with get_database_writer(database, batch_size=batch_size, dsn=dsn) as writer:
             for path in valid_paths:
-                reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
-                parser = get_parser(path)
                 execute(
                     fail_on_unhandled=fail_on_unhandled,
                     filter=filter,
                     limit=limit,
-                    on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
-                    on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
-                    parser=parser,
+                    on_progress_bytes=tracker.bytes_callback,
+                    on_progress_element=tracker.element_callback,
+                    parser=get_parser(path),
                     path=path,
-                    reader=reader,
+                    reader=tracker.get_reader(),
                     strict=strict,
                     summary=summary,
                     writer=writer,
                 )
-                bytes_completed += path.stat().st_size
+                tracker.advance_file(path)
 
         return summary.result() if summary else None
