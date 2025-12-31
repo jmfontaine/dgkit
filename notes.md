@@ -42,12 +42,13 @@
 - Maybe the SQLite writer should not use `--dsn` but `--path`.
 - How to best provide various levels of information to the user about operations?
 - How to check if the XML element has nodes or attributes we did not extract to the model? I want to make sure that the model represents the raw XML data accurately. Discogs data can be weird at times so I would like to have a way to catch unhandled edge cases. I am afraid it would hurt performance so it might have to be an option that is disabled by default. Maybe `--paranoia` or `--throrough`.
-
-
-
 - How to handle property values that are actually enums in disguise? For example the `dataquality` property has a small fixed number of values. Storing them as string is a waste of space.
+
+
 - Should we offer an option to normalize the data in the file writers to avoid bloating them with duplicated data?
-- Create views for entity types that are not explicitly defined but whose data is spread over other entities (e.g., series whose data is available in releases).
+- In the database writers, create views for entity types that are not explicitly defined but whose data is spread over other entities (e.g., series whose data is available in releases).
+- Will users really import input files independently or should we always process all of them? Could they only care in a single entity type (e.g., artists)? Would that even make sense? Should the default behavior be to process all files, unless an option is passed to ignored some of them?
+- Should we have logging? Maybe for debugging or tracking performance?
 
 
 ### v0.1.0 - Foundations
