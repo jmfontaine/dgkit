@@ -56,7 +56,17 @@ def convert_cmd(
     progress: Annotated[
         bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
     ] = True,
+    strict: Annotated[
+        bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
+    ] = False,
+    fail_on_unhandled: Annotated[
+        bool, typer.Option("--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict).")
+    ] = False,
 ):
+    # --fail-on-unhandled implies --strict
+    if fail_on_unhandled:
+        strict = True
+
     # Check for existing output files (only for file-based formats)
     if format not in (FileFormat.console, FileFormat.blackhole) and not overwrite:
         valid_files = [f for f in files if f.is_file()]
@@ -77,6 +87,7 @@ def convert_cmd(
         format, files, limit=limit, output_dir=output_dir,
         compression=compress, filters=filters,
         show_summary=summary, show_progress=progress,
+        strict=strict, fail_on_unhandled=fail_on_unhandled,
     )
     if result:
         typer.echo(result.display())
@@ -113,7 +124,17 @@ def load_cmd(
     progress: Annotated[
         bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
     ] = True,
+    strict: Annotated[
+        bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
+    ] = False,
+    fail_on_unhandled: Annotated[
+        bool, typer.Option("--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict).")
+    ] = False,
 ):
+    # --fail-on-unhandled implies --strict
+    if fail_on_unhandled:
+        strict = True
+
     valid_files = [f for f in files if f.is_file()]
 
     # Derive DSN from input filenames if not provided
@@ -134,6 +155,7 @@ def load_cmd(
         database, files, dsn=dsn, limit=limit,
         filters=filters, batch_size=batch,
         show_summary=summary, show_progress=progress,
+        strict=strict, fail_on_unhandled=fail_on_unhandled,
     )
     if result:
         typer.echo(result.display())

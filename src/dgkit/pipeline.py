@@ -1,3 +1,4 @@
+import logging
 import re
 
 from lxml import etree
@@ -30,12 +31,15 @@ from dgkit.types import (
     Reader,
     Writer,
 )
+from dgkit.validation import TrackingElement, UnhandledElementError
 from dgkit.writers import (
     DATABASE_WRITERS,
     FILE_WRITERS,
     get_database_writer,
     get_file_writer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def find_elements(
@@ -81,12 +85,17 @@ def execute(
     summary: SummaryCollector | None = None,
     on_progress_bytes: Callable[[int], None] | None = None,
     on_progress_element: Callable[[], None] | None = None,
+    strict: bool = False,
+    fail_on_unhandled: bool = False,
 ):
     """Execute the pipeline."""
     track_bytes = on_progress_bytes is not None and is_trackable(reader)
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
-            for record in parser.parse(elem):
+            # Wrap element for tracking if strict mode is enabled
+            parse_elem = TrackingElement(elem) if strict else elem
+
+            for record in parser.parse(parse_elem):
                 if summary:
                     summary.record_read()
                 if filter is not None:
@@ -102,6 +111,19 @@ def execute(
                 writer.write(record)
                 if summary:
                     summary.record_written()
+
+            # Check for unhandled elements in strict mode
+            if strict:
+                unaccessed = parse_elem.get_unaccessed()
+                if unaccessed:
+                    element_id = elem.findtext("id") or elem.get("id") or "?"
+                    if summary:
+                        summary.record_unhandled()
+                    if fail_on_unhandled:
+                        raise UnhandledElementError(element_id, parser.tag, unaccessed)
+                    paths = ", ".join(sorted(unaccessed))
+                    logger.warning(f"Unhandled in {parser.tag} id={element_id}: {paths}")
+
             if track_bytes:
                 on_progress_bytes(reader.bytes_read)  # type: ignore[union-attr]
             if on_progress_element:
@@ -170,6 +192,8 @@ def convert(
     filters: list[Filter] | None = None,
     show_summary: bool = True,
     show_progress: bool = False,
+    strict: bool = False,
+    fail_on_unhandled: bool = False,
 ) -> Summary | None:
     """Convert XML dumps to a file format."""
     valid_paths = [p for p in paths if p.is_file()]
@@ -222,6 +246,8 @@ def convert(
                         summary=summary,
                         on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
                         on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
+                        strict=strict,
+                        fail_on_unhandled=fail_on_unhandled,
                     )
                     bytes_completed += path.stat().st_size
         else:
@@ -242,6 +268,8 @@ def convert(
                         summary=summary,
                         on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
                         on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
+                        strict=strict,
+                        fail_on_unhandled=fail_on_unhandled,
                     )
                 bytes_completed += path.stat().st_size
     finally:
@@ -260,6 +288,8 @@ def load(
     batch_size: int = 10000,
     show_summary: bool = True,
     show_progress: bool = False,
+    strict: bool = False,
+    fail_on_unhandled: bool = False,
 ) -> Summary | None:
     """Load XML dumps into a database."""
     valid_paths = [p for p in paths if p.is_file()]
@@ -310,6 +340,8 @@ def load(
                     summary=summary,
                     on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
                     on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
+                    strict=strict,
+                    fail_on_unhandled=fail_on_unhandled,
                 )
                 bytes_completed += path.stat().st_size
     finally:

@@ -10,6 +10,7 @@ class Summary:
     records_dropped: int
     records_modified: int
     records_written: int
+    records_unhandled: int = 0
 
     @property
     def records_per_second(self) -> float:
@@ -19,12 +20,16 @@ class Summary:
 
     def display(self) -> str:
         lines = [
-            f"Read:     {self.records_read:,}",
-            f"Dropped:  {self.records_dropped:,}",
-            f"Modified: {self.records_modified:,}",
-            f"Written:  {self.records_written:,}",
-            f"Time:     {self.elapsed_seconds:.2f}s ({self.records_per_second:,.0f} records/sec)",
+            f"Read:      {self.records_read:,}",
+            f"Dropped:   {self.records_dropped:,}",
+            f"Modified:  {self.records_modified:,}",
+            f"Written:   {self.records_written:,}",
         ]
+        if self.records_unhandled > 0:
+            lines.append(f"Unhandled: {self.records_unhandled:,}")
+        lines.append(
+            f"Time:      {self.elapsed_seconds:.2f}s ({self.records_per_second:,.0f} records/sec)"
+        )
         return "\n".join(lines)
 
 
@@ -35,6 +40,7 @@ class SummaryCollector:
     _records_dropped: int = field(default=0, init=False)
     _records_modified: int = field(default=0, init=False)
     _records_written: int = field(default=0, init=False)
+    _records_unhandled: int = field(default=0, init=False)
 
     def __enter__(self) -> Self:
         self._start_time = time.perf_counter()
@@ -55,6 +61,9 @@ class SummaryCollector:
     def record_written(self) -> None:
         self._records_written += 1
 
+    def record_unhandled(self) -> None:
+        self._records_unhandled += 1
+
     def result(self) -> Summary:
         elapsed = time.perf_counter() - self._start_time
         return Summary(
@@ -63,4 +72,5 @@ class SummaryCollector:
             records_dropped=self._records_dropped,
             records_modified=self._records_modified,
             records_written=self._records_written,
+            records_unhandled=self._records_unhandled,
         )
