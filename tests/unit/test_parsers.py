@@ -1,7 +1,7 @@
 from lxml import etree
 
-from dgkit.models import Artist, ArtistRef, Label, LabelRef
-from dgkit.parsers import ArtistParser, LabelParser
+from dgkit.models import Artist, ArtistRef, Label, LabelRef, MasterArtist, MasterRelease, Video
+from dgkit.parsers import ArtistParser, LabelParser, MasterReleaseParser
 
 
 class TestArtistParser:
@@ -131,3 +131,88 @@ class TestLabelParser:
         assert label.urls == []
         assert label.sublabels == []
         assert label.parent_label is None
+
+
+class TestMasterReleaseParser:
+    def test_parse_master_with_all_fields(self):
+        xml = """
+        <master id="123">
+            <main_release>456</main_release>
+            <artists>
+                <artist>
+                    <id>1</id>
+                    <name>Artist One</name>
+                    <anv/>
+                    <join>,</join>
+                </artist>
+                <artist>
+                    <id>2</id>
+                    <name>Artist Two</name>
+                    <anv/>
+                    <join/>
+                </artist>
+            </artists>
+            <genres>
+                <genre>Electronic</genre>
+                <genre>Rock</genre>
+            </genres>
+            <styles>
+                <style>Ambient</style>
+                <style>Techno</style>
+            </styles>
+            <year>1999</year>
+            <title>Test Album</title>
+            <data_quality>Correct</data_quality>
+            <videos>
+                <video src="https://youtube.com/watch?v=abc" duration="300" embed="true">
+                    <title>Music Video</title>
+                    <description>Official video</description>
+                </video>
+            </videos>
+        </master>
+        """
+        elem = etree.fromstring(xml)
+        parser = MasterReleaseParser()
+        records = list(parser.parse(elem))
+
+        assert len(records) == 1
+        master = records[0]
+        assert isinstance(master, MasterRelease)
+        assert master.id == 123
+        assert master.title == "Test Album"
+        assert master.main_release == 456
+        assert master.year == 1999
+        assert master.notes is None
+        assert master.data_quality == "Correct"
+        assert master.artists == [
+            MasterArtist(1, "Artist One", "", ","),
+            MasterArtist(2, "Artist Two", "", ""),
+        ]
+        assert master.genres == ["Electronic", "Rock"]
+        assert master.styles == ["Ambient", "Techno"]
+        assert master.videos == [
+            Video("https://youtube.com/watch?v=abc", 300, True, "Music Video", "Official video")
+        ]
+
+    def test_parse_master_with_empty_fields(self):
+        xml = """
+        <master id="789">
+            <title>Minimal Album</title>
+        </master>
+        """
+        elem = etree.fromstring(xml)
+        parser = MasterReleaseParser()
+        records = list(parser.parse(elem))
+
+        assert len(records) == 1
+        master = records[0]
+        assert master.id == 789
+        assert master.title == "Minimal Album"
+        assert master.main_release is None
+        assert master.year is None
+        assert master.notes is None
+        assert master.data_quality is None
+        assert master.artists == []
+        assert master.genres == []
+        assert master.styles == []
+        assert master.videos == []

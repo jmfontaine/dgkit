@@ -4,7 +4,16 @@ from lxml import etree
 from pathlib import Path
 from typing import Iterator
 
-from dgkit.models import Artist, ArtistRef, Label, LabelRef, MasterRelease, Release
+from dgkit.models import (
+    Artist,
+    ArtistRef,
+    Label,
+    LabelRef,
+    MasterArtist,
+    MasterRelease,
+    Release,
+    Video,
+)
 from dgkit.types import Parser
 
 
@@ -96,14 +105,79 @@ class LabelParser:
         )
 
 
+def _parse_master_artists(parent: etree._Element | None) -> list[MasterArtist]:
+    """Parse artist credits from a master release."""
+    if parent is None:
+        return []
+    artists = []
+    for artist_elem in parent.findall("artist"):
+        artist_id = artist_elem.findtext("id")
+        name = artist_elem.findtext("name")
+        anv = artist_elem.findtext("anv")
+        join = artist_elem.findtext("join")
+        if artist_id and name:
+            artists.append(MasterArtist(int(artist_id), name, anv, join))
+    return artists
+
+
+def _parse_videos(parent: etree._Element | None) -> list[Video]:
+    """Parse videos from a master release."""
+    if parent is None:
+        return []
+    videos = []
+    for video_elem in parent.findall("video"):
+        src = video_elem.get("src")
+        duration = video_elem.get("duration")
+        embed = video_elem.get("embed")
+        if src and duration:
+            videos.append(
+                Video(
+                    src=src,
+                    duration=int(duration),
+                    embed=embed == "true",
+                    title=video_elem.findtext("title"),
+                    description=video_elem.findtext("description"),
+                )
+            )
+    return videos
+
+
 class MasterReleaseParser:
     tag = "master"
 
     def parse(self, elem: etree._Element) -> Iterator[MasterRelease]:
         """Parse master XML element into MasterRelease record."""
+        genres_elem = elem.find("genres")
+        genres = (
+            [g.text for g in genres_elem.findall("genre") if g.text]
+            if genres_elem is not None
+            else []
+        )
+
+        styles_elem = elem.find("styles")
+        styles = (
+            [s.text for s in styles_elem.findall("style") if s.text]
+            if styles_elem is not None
+            else []
+        )
+
+        year_text = elem.findtext("year")
+        year = int(year_text) if year_text else None
+
+        main_release_text = elem.findtext("main_release")
+        main_release = int(main_release_text) if main_release_text else None
+
         yield MasterRelease(
             id=int(elem.get("id")),
             title=elem.findtext("title"),
+            main_release=main_release,
+            year=year,
+            notes=elem.findtext("notes"),
+            data_quality=elem.findtext("data_quality"),
+            artists=_parse_master_artists(elem.find("artists")),
+            genres=genres,
+            styles=styles,
+            videos=_parse_videos(elem.find("videos")),
         )
 
 
