@@ -31,7 +31,12 @@ class Parser(Protocol):
 
 
 class Reader(Protocol):
-    """Protocol for input readers."""
+    """Protocol for input readers.
+
+    Readers may optionally implement progress tracking by providing
+    `total_size` and `bytes_read` properties. Use `is_trackable()` from
+    pipeline module to check if a reader supports tracking.
+    """
 
     @contextmanager
     def open(self, path: Path) -> Iterator[IO[bytes]]: ...

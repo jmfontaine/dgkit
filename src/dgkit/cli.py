@@ -53,6 +53,9 @@ def convert_cmd(
     summary: Annotated[
         bool, typer.Option("--summary/--no-summary", help="Show summary.")
     ] = True,
+    progress: Annotated[
+        bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
+    ] = True,
 ):
     # Check for existing output files (only for file-based formats)
     if format not in (FileFormat.console, FileFormat.blackhole) and not overwrite:
@@ -72,7 +75,8 @@ def convert_cmd(
     filters = build_filters(drop_if, unset)
     result = convert(
         format, files, limit=limit, output_dir=output_dir,
-        compression=compress, filters=filters, show_summary=summary
+        compression=compress, filters=filters,
+        show_summary=summary, show_progress=progress,
     )
     if result:
         typer.echo(result.display())
@@ -106,6 +110,9 @@ def load_cmd(
     summary: Annotated[
         bool, typer.Option("--summary/--no-summary", help="Show summary.")
     ] = True,
+    progress: Annotated[
+        bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
+    ] = True,
 ):
     valid_files = [f for f in files if f.is_file()]
 
@@ -125,7 +132,8 @@ def load_cmd(
     filters = build_filters(drop_if, unset)
     result = load(
         database, files, dsn=dsn, limit=limit,
-        filters=filters, batch_size=batch, show_summary=summary
+        filters=filters, batch_size=batch,
+        show_summary=summary, show_progress=progress,
     )
     if result:
         typer.echo(result.display())

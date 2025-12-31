@@ -16,6 +16,7 @@
 - Implement splitting some models to a few records in the database writer when storing them as lists is not possible or efficient.
 - Review the database schemas and file formats to ensure that the decisions made help querying the data easy and fast. If there is a trade-off to be made between ingestion and query speed, query speed should prevail.
 - Allow selecting alternative readers that leverage other libraries and approaches that might perform better on some systems? (e.g., RapidGzip).
+- Add a progress bar.
 
 ## Questions
 
@@ -38,7 +39,6 @@
 
 
 - How to best provide various levels of information to the user about operations?
-- Add a progress bar using Typer's feature.
 - The parsers should not yield multiple record types. Each entity type should be a single record. It is up to the writers to split that record into multiple records if required by the destination. Splitting records up at the parser level means that writers that can handle records with nested data have to merge the records back.
 - Have the `--summary` option measure the number of XML elements processed to align with the `--limit` option and avoid having a limit of 1000 but see 2345 records processed in the summary which is confusing.
 - Maybe the SQLite writer should not use `--dsn` but `--path`.
