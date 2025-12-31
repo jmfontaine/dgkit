@@ -29,6 +29,7 @@ class Filter(Protocol):
 
 # --- Expression Parser ---
 
+
 def _build_parser() -> pp.ParserElement:
     """Build the filter expression parser."""
     # Operators
@@ -79,6 +80,7 @@ _PARSER = _build_parser()
 
 
 # --- Comparison Evaluators ---
+
 
 def _get_field_value(record: NamedTuple, field: str) -> Any:
     """Get field value from record, supporting dot notation."""
@@ -153,6 +155,7 @@ def _evaluate(parsed: Any, record: NamedTuple) -> bool:
 
 # --- Filter Classes ---
 
+
 class ExpressionFilter:
     """Filter records using a parsed expression."""
 
@@ -195,6 +198,7 @@ class FilterChain:
 
 
 # --- CLI Parsing Helpers ---
+
 
 def parse_filter(expression: str) -> ExpressionFilter:
     """Parse a filter expression string."""

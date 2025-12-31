@@ -15,7 +15,10 @@ class TestParseSqliteDsn:
 
     def test_sqlite_absolute_path(self):
         assert parse_sqlite_dsn("sqlite:////tmp/test.db") == "/tmp/test.db"
-        assert parse_sqlite_dsn("sqlite:////absolute/path/test.db") == "/absolute/path/test.db"
+        assert (
+            parse_sqlite_dsn("sqlite:////absolute/path/test.db")
+            == "/absolute/path/test.db"
+        )
 
     def test_sqlite_memory(self):
         assert parse_sqlite_dsn("sqlite:///:memory:") == ":memory:"

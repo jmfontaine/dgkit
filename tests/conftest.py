@@ -34,9 +34,11 @@ def sample_labels_xml():
 @pytest.fixture
 def tmp_gzip_file(tmp_path):
     """Factory for creating temporary gzipped XML files."""
+
     def _create(name: str, content: str) -> Path:
         path = tmp_path / name
         with gzip.open(path, "wt") as f:
             f.write(content)
         return path
+
     return _create

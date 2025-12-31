@@ -32,11 +32,13 @@ class TestConvertCommand:
         assert result.exit_code == 0
         assert "Test Artist" in result.output
 
-    def test_convert_to_jsonl(self, cli_runner, tmp_gzip_file, sample_artists_xml, tmp_path):
+    def test_convert_to_jsonl(
+        self, cli_runner, tmp_gzip_file, sample_artists_xml, tmp_path
+    ):
         gzip_path = tmp_gzip_file("discogs_20251201_artists.xml.gz", sample_artists_xml)
-        result = cli_runner.invoke(app, [
-            "convert", str(gzip_path), "-f", "jsonl", "-o", str(tmp_path)
-        ])
+        result = cli_runner.invoke(
+            app, ["convert", str(gzip_path), "-f", "jsonl", "-o", str(tmp_path)]
+        )
         assert result.exit_code == 0
         output_file = tmp_path / "discogs_20251201_artists.jsonl"
         assert output_file.exists()
@@ -50,9 +52,10 @@ class TestConvertCommand:
         gzip_path = tmp_gzip_file(
             "discogs_20251201_artists.xml.gz", artists_with_unhandled_xml
         )
-        result = cli_runner.invoke(app, [
-            "convert", str(gzip_path), "-f", "blackhole", "--strict", "--no-progress"
-        ])
+        result = cli_runner.invoke(
+            app,
+            ["convert", str(gzip_path), "-f", "blackhole", "--strict", "--no-progress"],
+        )
         assert result.exit_code == 0
         # Check for panel titles
         assert "Unhandled Data" in result.output
@@ -67,12 +70,14 @@ class TestLoadCommand:
         assert result.exit_code == 0
         assert "Load data dumps" in result.output
 
-    def test_load_to_sqlite(self, cli_runner, tmp_gzip_file, sample_artists_xml, tmp_path):
+    def test_load_to_sqlite(
+        self, cli_runner, tmp_gzip_file, sample_artists_xml, tmp_path
+    ):
         gzip_path = tmp_gzip_file("discogs_20251201_artists.xml.gz", sample_artists_xml)
         db_path = tmp_path / "test.db"
-        result = cli_runner.invoke(app, [
-            "load", str(gzip_path), "-d", "sqlite", "--dsn", str(db_path)
-        ])
+        result = cli_runner.invoke(
+            app, ["load", str(gzip_path), "-d", "sqlite", "--dsn", str(db_path)]
+        )
         assert result.exit_code == 0
         assert db_path.exists()
 
@@ -82,13 +87,24 @@ class TestLoadCommand:
         assert cursor.fetchone()[0] == 2
         conn.close()
 
-    def test_load_with_filter(self, cli_runner, tmp_gzip_file, sample_artists_xml, tmp_path):
+    def test_load_with_filter(
+        self, cli_runner, tmp_gzip_file, sample_artists_xml, tmp_path
+    ):
         gzip_path = tmp_gzip_file("discogs_20251201_artists.xml.gz", sample_artists_xml)
         db_path = tmp_path / "test.db"
-        result = cli_runner.invoke(app, [
-            "load", str(gzip_path), "-d", "sqlite", "--dsn", str(db_path),
-            "--drop-if", "id == 1"
-        ])
+        result = cli_runner.invoke(
+            app,
+            [
+                "load",
+                str(gzip_path),
+                "-d",
+                "sqlite",
+                "--dsn",
+                str(db_path),
+                "--drop-if",
+                "id == 1",
+            ],
+        )
         assert result.exit_code == 0
 
         conn = sqlite3.connect(db_path)

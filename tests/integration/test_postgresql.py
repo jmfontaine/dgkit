@@ -23,6 +23,7 @@ def postgres_dsn(postgres_container):
 @pytest.fixture
 def make_artist():
     """Factory for creating Artist instances with defaults."""
+
     def _make(**kwargs):
         defaults = {
             "id": 1,
@@ -33,6 +34,7 @@ def make_artist():
         }
         defaults.update(kwargs)
         return Artist(**defaults)
+
     return _make
 
 

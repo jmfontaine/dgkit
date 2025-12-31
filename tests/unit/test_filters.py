@@ -7,6 +7,7 @@ from dgkit.models import Artist
 @pytest.fixture
 def make_artist():
     """Factory for creating Artist instances with defaults."""
+
     def _make(**kwargs):
         defaults = {
             "id": 1,
@@ -17,29 +18,30 @@ def make_artist():
         }
         defaults.update(kwargs)
         return Artist(**defaults)
+
     return _make
 
 
 class TestExpressionFilter:
     def test_equality_match_drops_record(self, make_artist):
-        f = parse_filter('id == 1')
+        f = parse_filter("id == 1")
         artist = make_artist(id=1)
         assert f(artist) is None
 
     def test_equality_no_match_keeps_record(self, make_artist):
-        f = parse_filter('id == 99')
+        f = parse_filter("id == 99")
         artist = make_artist(id=1)
         assert f(artist) == artist
 
     def test_not_equal(self, make_artist):
-        f = parse_filter('id != 1')
+        f = parse_filter("id != 1")
         artist1 = make_artist(id=1)
         artist2 = make_artist(id=2)
         assert f(artist1) == artist1  # id == 1, so != is false, keep
         assert f(artist2) is None  # id != 1, drop
 
     def test_greater_than(self, make_artist):
-        f = parse_filter('id > 5')
+        f = parse_filter("id > 5")
         artist = make_artist(id=10)
         assert f(artist) is None
 
@@ -49,17 +51,17 @@ class TestExpressionFilter:
         assert f(artist) is None
 
     def test_null_comparison(self, make_artist):
-        f = parse_filter('profile == null')
+        f = parse_filter("profile == null")
         artist = make_artist(profile=None)
         assert f(artist) is None
 
     def test_and_expression(self, make_artist):
-        f = parse_filter('id > 0 and id < 10')
+        f = parse_filter("id > 0 and id < 10")
         artist = make_artist(id=5)
         assert f(artist) is None
 
     def test_or_expression(self, make_artist):
-        f = parse_filter('id == 1 or id == 2')
+        f = parse_filter("id == 1 or id == 2")
         artist1 = make_artist(id=1)
         artist2 = make_artist(id=2)
         artist3 = make_artist(id=3)
@@ -93,7 +95,7 @@ class TestUnsetFields:
 class TestFilterChain:
     def test_chain_applies_filters_in_order(self, make_artist):
         f1 = UnsetFields(["profile"])
-        f2 = parse_filter('name == null')
+        f2 = parse_filter("name == null")
         chain = FilterChain([f1, f2])
 
         artist = make_artist(name=None, profile="Bio")
@@ -101,7 +103,7 @@ class TestFilterChain:
         assert result is None  # Dropped by f2
 
     def test_chain_stops_on_drop(self, make_artist):
-        f1 = parse_filter('id == 1')
+        f1 = parse_filter("id == 1")
         f2 = UnsetFields(["name"])
         chain = FilterChain([f1, f2])
 

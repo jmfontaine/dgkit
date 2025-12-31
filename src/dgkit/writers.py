@@ -128,6 +128,7 @@ class ConsoleWriter:
 
     def write(self, record: NamedTuple) -> None:
         from rich import print
+
         print(record)
 
 

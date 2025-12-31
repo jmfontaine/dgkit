@@ -19,6 +19,7 @@ dgkit = "dgkit.cli:app"
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=6.0.0",
+    "ruff>=0.14.10",
 ]
 test = [
     "testcontainers[postgres]>=4.13.3",

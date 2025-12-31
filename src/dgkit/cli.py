@@ -25,7 +25,9 @@ def display_result(result: Summary) -> None:
     """Display processing result with Rich formatting."""
     if result.warnings:
         warnings_text = "\n".join(result.warnings)
-        console.print(Panel(warnings_text, title="Unhandled Data", border_style="yellow"))
+        console.print(
+            Panel(warnings_text, title="Unhandled Data", border_style="yellow")
+        )
     console.print(Panel(result.display(), title="Summary", border_style="green"))
 
 
@@ -69,16 +71,19 @@ def convert_cmd(
     files: Annotated[list[Path], typer.Argument(help="Input files.")],
     format: Annotated[
         FileFormat,
-        typer.Option("--format", "-f", case_sensitive=False, help="Output file format."),
+        typer.Option(
+            "--format", "-f", case_sensitive=False, help="Output file format."
+        ),
     ],
-    limit: Annotated[
-        int | None, typer.Option(help="Max records per file.")
-    ] = None,
+    limit: Annotated[int | None, typer.Option(help="Max records per file.")] = None,
     output_dir: Annotated[
         Path, typer.Option("--output-dir", "-o", help="Output directory.")
     ] = Path("."),
     compress: Annotated[
-        Compression, typer.Option("--compress", "-c", case_sensitive=False, help="Compression algorithm.")
+        Compression,
+        typer.Option(
+            "--compress", "-c", case_sensitive=False, help="Compression algorithm."
+        ),
     ] = Compression.none,
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing files.")
@@ -87,7 +92,8 @@ def convert_cmd(
         list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
     ] = [],
     unset: Annotated[
-        list[str], typer.Option("--unset", help="Fields to set to null (comma-separated).")
+        list[str],
+        typer.Option("--unset", help="Fields to set to null (comma-separated)."),
     ] = [],
     summary: Annotated[
         bool, typer.Option("--summary/--no-summary", help="Show summary.")
@@ -99,7 +105,10 @@ def convert_cmd(
         bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
     ] = False,
     fail_on_unhandled: Annotated[
-        bool, typer.Option("--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict).")
+        bool,
+        typer.Option(
+            "--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict)."
+        ),
     ] = False,
 ):
     # --fail-on-unhandled implies --strict
@@ -148,9 +157,7 @@ def load_cmd(
     dsn: Annotated[
         str | None, typer.Option("--dsn", help="Database connection string.")
     ] = None,
-    limit: Annotated[
-        int | None, typer.Option(help="Max records per file.")
-    ] = None,
+    limit: Annotated[int | None, typer.Option(help="Max records per file.")] = None,
     batch: Annotated[
         int, typer.Option("--batch", "-b", help="Batch size for database inserts.")
     ] = 10000,
@@ -161,7 +168,8 @@ def load_cmd(
         list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
     ] = [],
     unset: Annotated[
-        list[str], typer.Option("--unset", help="Fields to set to null (comma-separated).")
+        list[str],
+        typer.Option("--unset", help="Fields to set to null (comma-separated)."),
     ] = [],
     summary: Annotated[
         bool, typer.Option("--summary/--no-summary", help="Show summary.")
@@ -173,7 +181,10 @@ def load_cmd(
         bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
     ] = False,
     fail_on_unhandled: Annotated[
-        bool, typer.Option("--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict).")
+        bool,
+        typer.Option(
+            "--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict)."
+        ),
     ] = False,
 ):
     # --fail-on-unhandled implies --strict

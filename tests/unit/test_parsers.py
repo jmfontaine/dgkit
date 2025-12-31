@@ -66,7 +66,10 @@ class TestArtistParser:
         assert artist.data_quality == DataQuality.NEEDS_VOTE
         assert artist.urls == ["https://example.com"]
         assert artist.name_variations == ["Test", "T. Artist"]
-        assert artist.aliases == [ArtistRef(100, "Alias One"), ArtistRef(200, "Alias Two")]
+        assert artist.aliases == [
+            ArtistRef(100, "Alias One"),
+            ArtistRef(200, "Alias Two"),
+        ]
         assert artist.members == [ArtistRef(10, "Member One")]
         assert artist.groups == [ArtistRef(50, "Group One")]
 
@@ -127,7 +130,10 @@ class TestLabelParser:
         assert label.profile == "A great label."
         assert label.data_quality == DataQuality.CORRECT
         assert label.urls == ["https://example.com"]
-        assert label.sub_labels == [LabelRef(100, "Sub Label One"), LabelRef(200, "Sub Label Two")]
+        assert label.sub_labels == [
+            LabelRef(100, "Sub Label One"),
+            LabelRef(200, "Sub Label Two"),
+        ]
         assert label.parent_label == LabelRef(50, "Parent Label")
 
     def test_parse_label_with_empty_fields(self):
@@ -468,7 +474,9 @@ class TestReleaseParser:
         assert track.title == "Track One"
         assert track.duration == "5:00"
         assert track.artists == [
-            CreditArtist(id=100, artist_name_variation="T.A.", join="", name="Track Artist")
+            CreditArtist(
+                id=100, artist_name_variation="T.A.", join="", name="Track Artist"
+            )
         ]
         assert track.extra_artists == [
             ExtraArtist(

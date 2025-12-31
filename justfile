@@ -8,6 +8,14 @@ _list:
 build:
     uv build
 
+# Format source code
+format:
+    ruff format
+
+# Check source code for defects
+lint *args:
+    ruff check {{ args }}
+
 # Run all tests
 test:
     pytest --cov    
