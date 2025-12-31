@@ -2,9 +2,9 @@ import re
 
 from lxml import etree
 from pathlib import Path
-from rich import print
 from typing import IO, Iterator
 
+from dgkit.benchmark import Summary, SummaryCollector
 from dgkit.filters import Filter, FilterChain
 from dgkit.parsers import get_parser
 from dgkit.readers import GzipReader
@@ -41,6 +41,7 @@ def execute(
     writer: Writer,
     limit: int | None,
     filter: Filter | None = None,
+    summary: SummaryCollector | None = None,
 ):
     """Execute the pipeline."""
     with reader.open(path) as stream:
@@ -51,6 +52,8 @@ def execute(
                     if record is None:
                         continue
                 writer.write(record)
+                if summary:
+                    summary.count()
 
 
 COMPRESSION_EXTENSIONS: dict[Compression, str] = {
@@ -91,12 +94,17 @@ def convert(
     output_dir: Path = Path("."),
     compression: Compression = Compression.none,
     filters: list[Filter] | None = None,
-):
+    show_summary: bool = True,
+) -> Summary | None:
     """Convert XML dumps to a file format."""
     reader = GzipReader()
     valid_paths = [p for p in paths if p.is_file()]
     writer_cls = FILE_WRITERS[format]
     filter = FilterChain(filters) if filters else None
+    summary = SummaryCollector() if show_summary else None
+
+    if summary:
+        summary.__enter__()
 
     if writer_cls.aggregates_inputs:
         # Aggregating writers (console, blackhole): no output file
@@ -110,6 +118,7 @@ def convert(
                     reader=reader,
                     writer=writer,
                     filter=filter,
+                    summary=summary,
                 )
     else:
         # File writers: one output per input
@@ -126,7 +135,10 @@ def convert(
                     reader=reader,
                     writer=writer,
                     filter=filter,
+                    summary=summary,
                 )
+
+    return summary.result() if summary else None
 
 
 def load(
@@ -136,11 +148,16 @@ def load(
     limit: int | None = None,
     filters: list[Filter] | None = None,
     batch_size: int = 10000,
-):
+    show_summary: bool = True,
+) -> Summary | None:
     """Load XML dumps into a database."""
     reader = GzipReader()
     valid_paths = [p for p in paths if p.is_file()]
     filter = FilterChain(filters) if filters else None
+    summary = SummaryCollector() if show_summary else None
+
+    if summary:
+        summary.__enter__()
 
     with get_database_writer(database, path=db_path, batch_size=batch_size) as writer:
         for path in valid_paths:
@@ -152,8 +169,7 @@ def load(
                 reader=reader,
                 writer=writer,
                 filter=filter,
+                summary=summary,
             )
 
-
-def inspect():
-    print("Inspect")
+    return summary.result() if summary else None

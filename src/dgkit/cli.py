@@ -7,7 +7,6 @@ from dgkit.pipeline import (
     build_database_path,
     build_output_path,
     convert,
-    inspect,
     load,
 )
 from dgkit.types import Compression, DatabaseType, FileFormat
@@ -51,6 +50,9 @@ def convert_cmd(
     unset: Annotated[
         list[str], typer.Option("--unset", help="Fields to set to null (comma-separated).")
     ] = [],
+    summary: Annotated[
+        bool, typer.Option("--summary/--no-summary", help="Show summary.")
+    ] = True,
 ):
     # Check for existing output files (only for file-based formats)
     if format not in (FileFormat.console, FileFormat.blackhole) and not overwrite:
@@ -68,7 +70,12 @@ def convert_cmd(
                 raise typer.Abort()
 
     filters = build_filters(drop_if, unset)
-    convert(format, files, limit=limit, output_dir=output_dir, compression=compress, filters=filters)
+    result = convert(
+        format, files, limit=limit, output_dir=output_dir,
+        compression=compress, filters=filters, show_summary=summary
+    )
+    if result:
+        typer.echo(result.display())
 
 
 @app.command(name="load", help="Load data dumps into a database.")
@@ -96,6 +103,9 @@ def load_cmd(
     unset: Annotated[
         list[str], typer.Option("--unset", help="Fields to set to null (comma-separated).")
     ] = [],
+    summary: Annotated[
+        bool, typer.Option("--summary/--no-summary", help="Show summary.")
+    ] = True,
 ):
     valid_files = [f for f in files if f.is_file()]
 
@@ -110,9 +120,9 @@ def load_cmd(
             raise typer.Abort()
 
     filters = build_filters(drop_if, unset)
-    load(database, files, db_path=path, limit=limit, filters=filters, batch_size=batch)
-
-
-@app.command(name="inspect")
-def inspect_cmd():
-    inspect()
+    result = load(
+        database, files, db_path=path, limit=limit,
+        filters=filters, batch_size=batch, show_summary=summary
+    )
+    if result:
+        typer.echo(result.display())
