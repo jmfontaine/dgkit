@@ -38,6 +38,46 @@ class IdentifierType(StrEnum):
     OTHER = "Other"
 
 
+class FormatName(StrEnum):
+    """Physical format name of a release."""
+
+    VINYL = "Vinyl"
+    CD = "CD"
+    CDR = "CDr"
+    CASSETTE = "Cassette"
+    FILE = "File"
+    DVD = "DVD"
+    DVDR = "DVDr"
+    BOX_SET = "Box Set"
+    ALL_MEDIA = "All Media"
+    VHS = "VHS"
+    FLEXI_DISC = "Flexi-disc"
+    LATHE_CUT = "Lathe Cut"
+    MINIDISC = "Minidisc"
+    ACETATE = "Acetate"
+    SACD = "SACD"
+    HYBRID = "Hybrid"
+    FLOPPY_DISK = "Floppy Disk"
+    CDV = "CDV"
+    LASERDISC = "Laserdisc"
+    SHELLAC = "Shellac"
+    DAT = "DAT"
+    EIGHT_TRACK_CARTRIDGE = "8-Track Cartridge"
+    MEMORY_STICK = "Memory Stick"
+    DCC = "DCC"
+    MVD = "MVD"
+    REEL_TO_REEL = "Reel-To-Reel"
+    BETAMAX = "Betamax"
+    BLU_RAY = "Blu-ray"
+    BLU_RAY_R = "Blu-ray-R"
+    HD_DVD = "HD DVD"
+    UMD = "UMD"
+    PATHÉ_DISC = "Pathé Disc"
+    CYLINDER = "Cylinder"
+    WIRE_RECORDING = "Wire Recording"
+    PLAYBUTTON = "Playbutton"
+
+
 class ArtistRef(NamedTuple):
     """Reference to another artist (used for aliases, members, groups)."""
 
@@ -106,7 +146,7 @@ class ReleaseLabel(NamedTuple):
 class Format(NamedTuple):
     """Physical format of a release."""
 
-    name: str
+    name: FormatName
     quantity: int
     text: str | None
     descriptions: list[str] = []

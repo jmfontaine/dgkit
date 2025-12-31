@@ -8,6 +8,7 @@ from dgkit.models import (
     DataQuality,
     ExtraArtist,
     Format,
+    FormatName,
     Identifier,
     IdentifierType,
     Label,
@@ -330,7 +331,7 @@ class TestReleaseParser:
         assert release.artists == [CreditArtist(1, "The Persuader", "", "")]
         assert release.labels == [ReleaseLabel(5, "Svek", "SK032")]
         assert release.extra_artists == [ExtraArtist(239, "Jesper Dahlbäck", "", "Written-By", "")]
-        assert release.formats == [Format("Vinyl", 2, "", ['12"'])]
+        assert release.formats == [Format(FormatName.VINYL, 2, "", ['12"'])]
         assert release.genres == ["Electronic"]
         assert release.styles == ["Deep House"]
         assert release.tracklist == [Track("A", "Östermalm", "4:45", [], [], [])]

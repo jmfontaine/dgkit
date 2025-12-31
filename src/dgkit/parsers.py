@@ -12,6 +12,7 @@ from dgkit.models import (
     DataQuality,
     ExtraArtist,
     Format,
+    FormatName,
     Identifier,
     IdentifierType,
     Label,
@@ -190,7 +191,7 @@ def _parse_formats(parent: etree._Element | None) -> list[Format]:
             else []
         )
         if name and quantity_text:
-            formats.append(Format(name, int(quantity_text), text, descriptions))
+            formats.append(Format(FormatName(name), int(quantity_text), text, descriptions))
     return formats
 
 

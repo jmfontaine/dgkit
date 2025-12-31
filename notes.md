@@ -49,6 +49,7 @@
 - In the database writers, create views for entity types that are not explicitly defined but whose data is spread over other entities (e.g., series whose data is available in releases).
 - Will users really import input files independently or should we always process all of them? Could they only care in a single entity type (e.g., artists)? Would that even make sense? Should the default behavior be to process all files, unless an option is passed to ignored some of them?
 - Should we have logging? Maybe for debugging or tracking performance?
+- How could we resume stopped imports?
 
 
 ### v0.1.0 - Foundations
