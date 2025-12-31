@@ -11,7 +11,7 @@ build:
 # Format source code
 format:
     ruff format
-    pyproject-fmt
+    pyproject-fmt pyproject.toml
 
 # Fix fixable source code defects
 fix:
@@ -20,7 +20,9 @@ fix:
 
 # Check source code for defects
 lint:
+    ruff format --check
     ruff check
+    pyproject-fmt --check pyproject.toml
     sqlfluff lint src/dgkit/sql
 
 # Run tests (optional: path or pytest args)
@@ -30,3 +32,7 @@ test *args:
 # Type check source code
 typecheck:
     ty check
+
+# Update pre-commit hooks
+update:
+    pre-commit autoupdate

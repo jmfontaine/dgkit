@@ -299,7 +299,9 @@ class SqliteWriter:
         # Identify junction table fields (list[int] or list[NamedTuple])
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is not None and (elem_type is int or _is_namedtuple(elem_type)):
+            if elem_type is not None and (
+                elem_type is int or _is_namedtuple(elem_type)
+            ):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
                 self._junction_tables[(table_name, field)] = (junction_table, elem_type)
@@ -489,7 +491,9 @@ class PostgresWriter:
 
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is not None and (elem_type is int or _is_namedtuple(elem_type)):
+            if elem_type is not None and (
+                elem_type is int or _is_namedtuple(elem_type)
+            ):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
                 self._junction_tables[(table_name, field)] = (junction_table, elem_type)
@@ -497,7 +501,9 @@ class PostgresWriter:
         self._junction_fields[table_name] = junction_fields
 
         conn.execute(
-            pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(pgsql.Identifier(table_name))
+            pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
+                pgsql.Identifier(table_name)
+            )
         )
 
         # Track column names for COPY (excluding junction fields)
@@ -520,7 +526,9 @@ class PostgresWriter:
                 pg_type = POSTGRES_TYPE_MAP.get(field_type, "TEXT")
                 if i == 0 and pg_type == "BIGINT":
                     col_defs.append(
-                        pgsql.SQL("{} BIGINT PRIMARY KEY").format(pgsql.Identifier(field))
+                        pgsql.SQL("{} BIGINT PRIMARY KEY").format(
+                            pgsql.Identifier(field)
+                        )
                     )
                 else:
                     col_defs.append(

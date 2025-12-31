@@ -87,7 +87,9 @@ def execute(
     summary: SummaryCollector | None = None,
 ):
     """Execute the pipeline."""
-    trackable: TrackableReader | None = cast(TrackableReader, reader) if is_trackable(reader) else None
+    trackable: TrackableReader | None = (
+        cast(TrackableReader, reader) if is_trackable(reader) else None
+    )
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
             # Wrap element for tracking if strict mode is enabled
