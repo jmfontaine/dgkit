@@ -5,6 +5,7 @@ from dgkit.models import (
     ArtistRef,
     Company,
     CreditArtist,
+    DataQuality,
     ExtraArtist,
     Format,
     Identifier,
@@ -13,6 +14,7 @@ from dgkit.models import (
     MasterRelease,
     Release,
     ReleaseLabel,
+    ReleaseStatus,
     Series,
     Track,
     Video,
@@ -59,7 +61,7 @@ class TestArtistParser:
         assert artist.name == "Test Artist"
         assert artist.real_name == "Real Name"
         assert artist.profile == "Test profile."
-        assert artist.data_quality == "Needs Vote"
+        assert artist.data_quality == DataQuality.NEEDS_VOTE
         assert artist.urls == ["https://example.com"]
         assert artist.name_variations == ["Test", "T. Artist"]
         assert artist.aliases == [ArtistRef(100, "Alias One"), ArtistRef(200, "Alias Two")]
@@ -121,7 +123,7 @@ class TestLabelParser:
         assert label.name == "Test Label"
         assert label.contact_info == "123 Main St"
         assert label.profile == "A great label."
-        assert label.data_quality == "Correct"
+        assert label.data_quality == DataQuality.CORRECT
         assert label.urls == ["https://example.com"]
         assert label.sub_labels == [LabelRef(100, "Sub Label One"), LabelRef(200, "Sub Label Two")]
         assert label.parent_label == LabelRef(50, "Parent Label")
@@ -199,7 +201,7 @@ class TestMasterReleaseParser:
         assert master.main_release == 456
         assert master.year == 1999
         assert master.notes is None
-        assert master.data_quality == "Correct"
+        assert master.data_quality == DataQuality.CORRECT
         assert master.artists == [
             CreditArtist(1, "Artist One", "", ","),
             CreditArtist(2, "Artist Two", "", ""),
@@ -316,12 +318,12 @@ class TestReleaseParser:
         release = records[0]
         assert isinstance(release, Release)
         assert release.id == 1
-        assert release.status == "Accepted"
+        assert release.status == ReleaseStatus.ACCEPTED
         assert release.title == "Stockholm"
         assert release.country == "Sweden"
         assert release.released == "1999-03-00"
         assert release.notes == "Test notes."
-        assert release.data_quality == "Needs Vote"
+        assert release.data_quality == DataQuality.NEEDS_VOTE
         assert release.master_id == 1660109
         assert release.is_main_release is True
         assert release.artists == [CreditArtist(1, "The Persuader", "", "")]
@@ -349,7 +351,7 @@ class TestReleaseParser:
         assert len(records) == 1
         release = records[0]
         assert release.id == 999
-        assert release.status == "Draft"
+        assert release.status == ReleaseStatus.DRAFT
         assert release.title == "Minimal Release"
         assert release.country is None
         assert release.released is None

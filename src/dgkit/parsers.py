@@ -9,6 +9,7 @@ from dgkit.models import (
     ArtistRef,
     Company,
     CreditArtist,
+    DataQuality,
     ExtraArtist,
     Format,
     Identifier,
@@ -17,12 +18,25 @@ from dgkit.models import (
     MasterRelease,
     Release,
     ReleaseLabel,
+    ReleaseStatus,
     Series,
     SubTrack,
     Track,
     Video,
 )
 from dgkit.types import Parser
+
+
+def _parse_data_quality(elem: etree._Element) -> DataQuality | None:
+    """Parse data_quality field, converting to enum."""
+    text = elem.findtext("data_quality")
+    return DataQuality(text) if text else None
+
+
+def _parse_release_status(elem: etree._Element) -> ReleaseStatus | None:
+    """Parse release status attribute, converting to enum."""
+    text = elem.get("status")
+    return ReleaseStatus(text) if text else None
 
 
 def _parse_artist_refs(parent: etree._Element | None) -> list[ArtistRef]:
@@ -61,7 +75,7 @@ class ArtistParser:
             name=elem.findtext("name"),
             real_name=elem.findtext("realname"),
             profile=elem.findtext("profile"),
-            data_quality=elem.findtext("data_quality"),
+            data_quality=_parse_data_quality(elem),
             urls=urls,
             name_variations=name_variations,
             aliases=_parse_artist_refs(elem.find("aliases")),
@@ -106,7 +120,7 @@ class LabelParser:
             name=elem.findtext("name") or elem.text,
             contact_info=elem.findtext("contactinfo"),
             profile=elem.findtext("profile"),
-            data_quality=elem.findtext("data_quality"),
+            data_quality=_parse_data_quality(elem),
             urls=urls,
             sub_labels=_parse_label_refs(elem.find("sublabels")),
             parent_label=parent_label,
@@ -310,7 +324,7 @@ class MasterReleaseParser:
             main_release=main_release,
             year=year,
             notes=elem.findtext("notes"),
-            data_quality=elem.findtext("data_quality"),
+            data_quality=_parse_data_quality(elem),
             artists=_parse_credit_artists(elem.find("artists")),
             genres=_parse_genres(elem.find("genres")),
             styles=_parse_styles(elem.find("styles")),
@@ -333,12 +347,12 @@ class ReleaseParser:
 
         yield Release(
             id=int(elem.get("id")),
-            status=elem.get("status"),
+            status=_parse_release_status(elem),
             title=elem.findtext("title"),
             country=elem.findtext("country"),
             released=elem.findtext("released"),
             notes=elem.findtext("notes"),
-            data_quality=elem.findtext("data_quality"),
+            data_quality=_parse_data_quality(elem),
             master_id=master_id,
             is_main_release=is_main_release,
             artists=_parse_credit_artists(elem.find("artists")),

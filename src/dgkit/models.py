@@ -1,4 +1,25 @@
+from enum import StrEnum
 from typing import NamedTuple
+
+
+class DataQuality(StrEnum):
+    """Data quality rating for Discogs records."""
+
+    NEEDS_VOTE = "Needs Vote"
+    ENTIRELY_INCORRECT = "Entirely Incorrect"
+    NEEDS_MINOR_CHANGES = "Needs Minor Changes"
+    NEEDS_MAJOR_CHANGES = "Needs Major Changes"
+    CORRECT = "Correct"
+    COMPLETE_AND_CORRECT = "Complete and Correct"
+
+
+class ReleaseStatus(StrEnum):
+    """Status of a release submission."""
+
+    ACCEPTED = "Accepted"
+    DRAFT = "Draft"
+    DELETED = "Deleted"
+    REJECTED = "Rejected"
 
 
 class ArtistRef(NamedTuple):
@@ -13,7 +34,7 @@ class Artist(NamedTuple):
     name: str | None
     real_name: str | None
     profile: str | None
-    data_quality: str | None
+    data_quality: DataQuality | None
     urls: list[str] = []
     name_variations: list[str] = []
     aliases: list[ArtistRef] = []
@@ -33,7 +54,7 @@ class Label(NamedTuple):
     name: str | None
     contact_info: str | None
     profile: str | None
-    data_quality: str | None
+    data_quality: DataQuality | None
     urls: list[str] = []
     sub_labels: list[LabelRef] = []
     parent_label: LabelRef | None = None
@@ -138,7 +159,7 @@ class MasterRelease(NamedTuple):
     main_release: int | None
     year: int | None
     notes: str | None
-    data_quality: str | None
+    data_quality: DataQuality | None
     artists: list[CreditArtist] = []
     genres: list[str] = []
     styles: list[str] = []
@@ -147,12 +168,12 @@ class MasterRelease(NamedTuple):
 
 class Release(NamedTuple):
     id: int
-    status: str | None
+    status: ReleaseStatus | None
     title: str | None
     country: str | None
     released: str | None
     notes: str | None
-    data_quality: str | None
+    data_quality: DataQuality | None
     master_id: int | None
     is_main_release: bool | None
     artists: list[CreditArtist] = []
