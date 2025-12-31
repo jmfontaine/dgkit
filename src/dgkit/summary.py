@@ -23,6 +23,7 @@ class Summary:
     records_written: int
     records_unhandled: int = 0
     warnings: list[str] = field(default_factory=list)
+    options: dict[str, bool] = field(default_factory=dict)
 
     @property
     def records_per_second(self) -> float:
@@ -31,7 +32,9 @@ class Summary:
         return self.records_read / self.elapsed_seconds
 
     def display(self) -> str:
+        duration = _format_duration(self.elapsed_seconds)
         lines = [
+            f"Time:      {duration} ({self.records_per_second:,.0f} records/sec)",
             f"Read:      {self.records_read:,}",
             f"Dropped:   {self.records_dropped:,}",
             f"Modified:  {self.records_modified:,}",
@@ -39,13 +42,14 @@ class Summary:
         ]
         if self.records_unhandled > 0:
             lines.append(f"Unhandled: {self.records_unhandled:,}")
-        duration = _format_duration(self.elapsed_seconds)
-        lines.append(f"Time:      {duration} ({self.records_per_second:,.0f} records/sec)")
+        strict_status = "Enabled" if self.options.get("strict") else "Disabled"
+        lines.append(f"Strict:    {strict_status}")
         return "\n".join(lines)
 
 
 @dataclass
 class SummaryCollector:
+    options: dict[str, bool] = field(default_factory=dict)
     _start_time: float = field(default=0, init=False)
     _records_read: int = field(default=0, init=False)
     _records_dropped: int = field(default=0, init=False)
@@ -91,4 +95,5 @@ class SummaryCollector:
             records_written=self._records_written,
             records_unhandled=self._records_unhandled,
             warnings=self._warnings,
+            options=self.options,
         )

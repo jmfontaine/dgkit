@@ -18,7 +18,7 @@ from rich.progress import (
 )
 from rich.text import Text
 
-from dgkit.benchmark import Summary, SummaryCollector
+from dgkit.summary import Summary, SummaryCollector
 from dgkit.filters import Filter, FilterChain
 from dgkit.parsers import get_parser
 from dgkit.readers import GzipReader, TrackingGzipReader
@@ -196,7 +196,7 @@ def convert(
     valid_paths = [p for p in paths if p.is_file()]
     writer_cls = FILE_WRITERS[format]
     filter = FilterChain(filters) if filters else None
-    summary = SummaryCollector() if show_summary else None
+    summary = SummaryCollector(options={"strict": strict}) if show_summary else None
 
     if summary:
         summary.__enter__()
@@ -291,7 +291,7 @@ def load(
     """Load XML dumps into a database."""
     valid_paths = [p for p in paths if p.is_file()]
     filter = FilterChain(filters) if filters else None
-    summary = SummaryCollector() if show_summary else None
+    summary = SummaryCollector(options={"strict": strict}) if show_summary else None
 
     if summary:
         summary.__enter__()

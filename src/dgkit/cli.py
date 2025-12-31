@@ -7,7 +7,7 @@ from typing import Annotated
 from rich.console import Console
 from rich.panel import Panel
 
-from dgkit.benchmark import Summary
+from dgkit.summary import Summary
 from dgkit.filters import Filter, parse_filter, parse_unset
 from dgkit.pipeline import (
     build_database_path,
