@@ -1,9 +1,9 @@
 from contextlib import contextmanager
 from enum import Enum
+from pathlib import Path
 from typing import IO, Iterator, NamedTuple, Protocol, Self
 
 from lxml import etree
-from pathlib import Path
 
 
 class FileFormat(str, Enum):

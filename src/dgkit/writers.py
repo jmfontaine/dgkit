@@ -186,11 +186,11 @@ class JsonlWriter:
 
 
 SQLITE_TYPE_MAP: dict[type, str] = {
-    int: "INTEGER",
-    float: "REAL",
-    str: "TEXT",
     bool: "INTEGER",
     bytes: "BLOB",
+    float: "REAL",
+    int: "INTEGER",
+    str: "TEXT",
 }
 
 
@@ -373,11 +373,11 @@ class SqliteWriter:
 
 
 POSTGRES_TYPE_MAP: dict[type, str] = {
-    int: "BIGINT",
-    float: "DOUBLE PRECISION",
-    str: "TEXT",
     bool: "BOOLEAN",
     bytes: "BYTEA",
+    float: "DOUBLE PRECISION",
+    int: "BIGINT",
+    str: "TEXT",
 }
 
 

@@ -1,9 +1,8 @@
 import re
+from pathlib import Path
+from typing import IO, Callable, Iterator
 
 from lxml import etree
-from pathlib import Path
-from typing import Callable, IO, Iterator
-
 from rich.progress import (
     BarColumn,
     DownloadColumn,
@@ -18,10 +17,10 @@ from rich.progress import (
 )
 from rich.text import Text
 
-from dgkit.summary import Summary, SummaryCollector
 from dgkit.filters import Filter, FilterChain
 from dgkit.parsers import get_parser
 from dgkit.readers import GzipReader, TrackingGzipReader
+from dgkit.summary import Summary, SummaryCollector
 from dgkit.types import (
     Compression,
     DatabaseType,
@@ -73,17 +72,17 @@ class ElementCountColumn(ProgressColumn):
 
 def execute(
     *,
-    path: Path,
+    limit: int | None,
     parser: Parser,
+    path: Path,
     reader: Reader,
     writer: Writer,
-    limit: int | None,
+    fail_on_unhandled: bool = False,
     filter: Filter | None = None,
-    summary: SummaryCollector | None = None,
     on_progress_bytes: Callable[[int], None] | None = None,
     on_progress_element: Callable[[], None] | None = None,
     strict: bool = False,
-    fail_on_unhandled: bool = False,
+    summary: SummaryCollector | None = None,
 ):
     """Execute the pipeline."""
     track_bytes = on_progress_bytes is not None and is_trackable(reader)
@@ -128,9 +127,9 @@ def execute(
 
 
 COMPRESSION_EXTENSIONS: dict[Compression, str] = {
-    Compression.none: "",
     Compression.bz2: ".bz2",
     Compression.gzip: ".gz",
+    Compression.none: "",
 }
 
 
@@ -183,14 +182,14 @@ def build_database_path(paths: list[Path], output_dir: Path) -> Path:
 def convert(
     format: FileFormat,
     paths: list[Path],
+    compression: Compression = Compression.none,
+    fail_on_unhandled: bool = False,
+    filters: list[Filter] | None = None,
     limit: int | None = None,
     output_dir: Path = Path("."),
-    compression: Compression = Compression.none,
-    filters: list[Filter] | None = None,
-    show_summary: bool = True,
     show_progress: bool = False,
+    show_summary: bool = True,
     strict: bool = False,
-    fail_on_unhandled: bool = False,
 ) -> Summary | None:
     """Convert XML dumps to a file format."""
     valid_paths = [p for p in paths if p.is_file()]
@@ -234,17 +233,17 @@ def convert(
                     reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
                     parser = get_parser(path)
                     execute(
-                        limit=limit,
-                        path=path,
-                        parser=parser,
-                        reader=reader,
-                        writer=writer,
+                        fail_on_unhandled=fail_on_unhandled,
                         filter=filter,
-                        summary=summary,
+                        limit=limit,
                         on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
                         on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
+                        parser=parser,
+                        path=path,
+                        reader=reader,
                         strict=strict,
-                        fail_on_unhandled=fail_on_unhandled,
+                        summary=summary,
+                        writer=writer,
                     )
                     bytes_completed += path.stat().st_size
         else:
@@ -253,20 +252,20 @@ def convert(
                 parser = get_parser(path)
                 output_path = build_output_path(path, format, output_dir, compression)
                 with get_file_writer(
-                    format, path=output_path, compression=compression
+                    format, compression=compression, path=output_path
                 ) as writer:
                     execute(
-                        limit=limit,
-                        path=path,
-                        parser=parser,
-                        reader=reader,
-                        writer=writer,
+                        fail_on_unhandled=fail_on_unhandled,
                         filter=filter,
-                        summary=summary,
+                        limit=limit,
                         on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
                         on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
+                        parser=parser,
+                        path=path,
+                        reader=reader,
                         strict=strict,
-                        fail_on_unhandled=fail_on_unhandled,
+                        summary=summary,
+                        writer=writer,
                     )
                 bytes_completed += path.stat().st_size
     finally:
@@ -280,13 +279,13 @@ def load(
     database: DatabaseType,
     paths: list[Path],
     dsn: str,
-    limit: int | None = None,
-    filters: list[Filter] | None = None,
     batch_size: int = 10000,
-    show_summary: bool = True,
-    show_progress: bool = False,
-    strict: bool = False,
     fail_on_unhandled: bool = False,
+    filters: list[Filter] | None = None,
+    limit: int | None = None,
+    show_progress: bool = False,
+    show_summary: bool = True,
+    strict: bool = False,
 ) -> Summary | None:
     """Load XML dumps into a database."""
     valid_paths = [p for p in paths if p.is_file()]
@@ -323,22 +322,22 @@ def load(
             if progress and task_id is not None:
                 progress.advance(task_id)
 
-        with get_database_writer(database, dsn=dsn, batch_size=batch_size) as writer:
+        with get_database_writer(database, batch_size=batch_size, dsn=dsn) as writer:
             for path in valid_paths:
                 reader = TrackingGzipReader() if (show_progress and not use_element_progress) else GzipReader()
                 parser = get_parser(path)
                 execute(
-                    limit=limit,
-                    path=path,
-                    parser=parser,
-                    reader=reader,
-                    writer=writer,
+                    fail_on_unhandled=fail_on_unhandled,
                     filter=filter,
-                    summary=summary,
+                    limit=limit,
                     on_progress_bytes=on_progress_bytes if (show_progress and not use_element_progress) else None,
                     on_progress_element=on_progress_element if (show_progress and use_element_progress) else None,
+                    parser=parser,
+                    path=path,
+                    reader=reader,
                     strict=strict,
-                    fail_on_unhandled=fail_on_unhandled,
+                    summary=summary,
+                    writer=writer,
                 )
                 bytes_completed += path.stat().st_size
     finally:

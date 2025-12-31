@@ -1,13 +1,11 @@
 import sys
-
-import typer
 from pathlib import Path
 from typing import Annotated
 
+import typer
 from rich.console import Console
 from rich.panel import Panel
 
-from dgkit.summary import Summary
 from dgkit.filters import Filter, parse_filter, parse_unset
 from dgkit.pipeline import (
     build_database_path,
@@ -15,6 +13,7 @@ from dgkit.pipeline import (
     convert,
     load,
 )
+from dgkit.summary import Summary
 from dgkit.types import Compression, DatabaseType, FileFormat
 
 # Global debug flag
@@ -124,10 +123,16 @@ def convert_cmd(
 
     filters = build_filters(drop_if, unset)
     result = convert(
-        format, files, limit=limit, output_dir=output_dir,
-        compression=compress, filters=filters,
-        show_summary=summary, show_progress=progress,
-        strict=strict, fail_on_unhandled=fail_on_unhandled,
+        format,
+        files,
+        compression=compress,
+        fail_on_unhandled=fail_on_unhandled,
+        filters=filters,
+        limit=limit,
+        output_dir=output_dir,
+        show_progress=progress,
+        show_summary=summary,
+        strict=strict,
     )
     if result:
         display_result(result)
@@ -192,10 +197,16 @@ def load_cmd(
 
     filters = build_filters(drop_if, unset)
     result = load(
-        database, files, dsn=dsn, limit=limit,
-        filters=filters, batch_size=batch,
-        show_summary=summary, show_progress=progress,
-        strict=strict, fail_on_unhandled=fail_on_unhandled,
+        database,
+        files,
+        batch_size=batch,
+        dsn=dsn,
+        fail_on_unhandled=fail_on_unhandled,
+        filters=filters,
+        limit=limit,
+        show_progress=progress,
+        show_summary=summary,
+        strict=strict,
     )
     if result:
         display_result(result)

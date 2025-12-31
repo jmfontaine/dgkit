@@ -17,13 +17,13 @@ def _format_duration(seconds: float) -> str:
 @dataclass
 class Summary:
     elapsed_seconds: float
-    records_read: int
     records_dropped: int
     records_modified: int
+    records_read: int
     records_written: int
+    options: dict[str, bool] = field(default_factory=dict)
     records_unhandled: int = 0
     warnings: list[str] = field(default_factory=list)
-    options: dict[str, bool] = field(default_factory=dict)
 
     @property
     def records_per_second(self) -> float:
@@ -89,11 +89,11 @@ class SummaryCollector:
         elapsed = time.perf_counter() - self._start_time
         return Summary(
             elapsed_seconds=elapsed,
-            records_read=self._records_read,
             records_dropped=self._records_dropped,
             records_modified=self._records_modified,
+            records_read=self._records_read,
             records_written=self._records_written,
+            options=self.options,
             records_unhandled=self._records_unhandled,
             warnings=self._warnings,
-            options=self.options,
         )
