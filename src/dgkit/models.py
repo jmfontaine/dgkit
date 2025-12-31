@@ -22,6 +22,22 @@ class ReleaseStatus(StrEnum):
     REJECTED = "Rejected"
 
 
+class IdentifierType(StrEnum):
+    """Type of release identifier."""
+
+    BARCODE = "Barcode"
+    MATRIX_RUNOUT = "Matrix / Runout"
+    ISRC = "ISRC"
+    LABEL_CODE = "Label Code"
+    RIGHTS_SOCIETY = "Rights Society"
+    MASTERING_SID_CODE = "Mastering SID Code"
+    MOULD_SID_CODE = "Mould SID Code"
+    ASIN = "ASIN"
+    DEPOSITO_LEGAL = "Depósito Legal"
+    SPARS_CODE = "SPARS Code"
+    OTHER = "Other"
+
+
 class ArtistRef(NamedTuple):
     """Reference to another artist (used for aliases, members, groups)."""
 
@@ -120,7 +136,7 @@ class Track(NamedTuple):
 class Identifier(NamedTuple):
     """Identifier like barcode, matrix, etc."""
 
-    type: str
+    type: IdentifierType
     description: str | None
     value: str
 

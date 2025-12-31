@@ -13,6 +13,7 @@ from dgkit.models import (
     ExtraArtist,
     Format,
     Identifier,
+    IdentifierType,
     Label,
     LabelRef,
     MasterRelease,
@@ -234,7 +235,7 @@ def _parse_identifiers(parent: etree._Element | None) -> list[Identifier]:
         description = id_elem.get("description")
         value = id_elem.get("value")
         if id_type and value:
-            identifiers.append(Identifier(id_type, description, value))
+            identifiers.append(Identifier(IdentifierType(id_type), description, value))
     return identifiers
 
 

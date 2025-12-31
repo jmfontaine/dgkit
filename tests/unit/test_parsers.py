@@ -9,6 +9,7 @@ from dgkit.models import (
     ExtraArtist,
     Format,
     Identifier,
+    IdentifierType,
     Label,
     LabelRef,
     MasterRelease,
@@ -333,7 +334,7 @@ class TestReleaseParser:
         assert release.genres == ["Electronic"]
         assert release.styles == ["Deep House"]
         assert release.tracklist == [Track("A", "Östermalm", "4:45", [], [], [])]
-        assert release.identifiers == [Identifier("Matrix / Runout", "A-side", "SK 032 A1")]
+        assert release.identifiers == [Identifier(IdentifierType.MATRIX_RUNOUT, "A-side", "SK 032 A1")]
         assert release.videos == [Video("https://youtube.com/watch?v=abc", 325, True, "Test Video", "Description")]
         assert release.companies == [Company(271046, "The Globe Studios", "", 23, "Recorded At")]
         assert release.series == [Series(12345, "Test Series", "Vol. 1")]
