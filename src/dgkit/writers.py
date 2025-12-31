@@ -6,9 +6,12 @@ from importlib.resources import files
 from urllib.parse import urlparse
 
 from pathlib import Path
-from typing import IO, Any, NamedTuple, Self, get_args, get_origin
+from typing import IO, TYPE_CHECKING, Any, NamedTuple, Self, get_args, get_origin
 
 from dgkit.types import Compression, DatabaseType, FileFormat, Writer
+
+if TYPE_CHECKING:
+    import psycopg
 
 
 def _get_list_element_type(field_type: type) -> type | None:
@@ -315,6 +318,180 @@ class SqliteWriter:
                     self._flush(junction_table)
 
 
+POSTGRES_TYPE_MAP: dict[type, str] = {
+    int: "BIGINT",
+    float: "DOUBLE PRECISION",
+    str: "TEXT",
+    bool: "BOOLEAN",
+    bytes: "BYTEA",
+}
+
+
+class PostgresWriter:
+    """Writer that outputs records to a PostgreSQL database."""
+
+    aggregates_inputs = True
+
+    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any):
+        self.dsn = dsn
+        self.batch_size = batch_size
+        self._conn: "psycopg.Connection | None" = None
+        self._tables: set[str] = set()
+        self._buffers: dict[str, list[tuple]] = {}
+        self._junction_tables: dict[tuple[str, str], str] = {}
+        self._junction_fields: dict[str, set[str]] = {}
+        self._table_columns: dict[str, list[str]] = {}
+
+    def __enter__(self) -> Self:
+        import psycopg
+
+        self._conn = psycopg.connect(self.dsn)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self._conn:
+            self._flush_all()
+            if not exc_type:
+                self._create_indices()
+            self._conn.commit()
+            self._conn.close()
+
+    def _ensure_table(self, record: NamedTuple) -> str:
+        """Create table for record type if it doesn't exist."""
+        table_name = type(record).__name__.lower()
+        if table_name in self._tables:
+            return table_name
+
+        annotations = type(record).__annotations__
+        junction_fields: set[str] = set()
+
+        for field, field_type in annotations.items():
+            elem_type = _get_list_element_type(field_type)
+            if elem_type is int:
+                junction_fields.add(field)
+                junction_table = f"{table_name}_{_singularize(field)}"
+                self._junction_tables[(table_name, field)] = junction_table
+
+        self._junction_fields[table_name] = junction_fields
+
+        self._conn.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
+
+        sql = _load_sql("postgresql", "tables", table_name)
+        if sql:
+            self._conn.execute(sql)
+        else:
+            fields = record._fields
+            columns = []
+            column_names = []
+            for i, field in enumerate(fields):
+                if field in junction_fields:
+                    continue
+                column_names.append(field)
+                field_type = annotations.get(field, str)
+                if hasattr(field_type, "__origin__"):
+                    args = getattr(field_type, "__args__", ())
+                    field_type = next((t for t in args if t is not type(None)), str)
+                pg_type = POSTGRES_TYPE_MAP.get(field_type, "TEXT")
+                if i == 0 and pg_type == "BIGINT":
+                    columns.append(f"{field} BIGINT PRIMARY KEY")
+                else:
+                    columns.append(f"{field} {pg_type}")
+            self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
+            self._table_columns[table_name] = column_names
+
+        self._tables.add(table_name)
+        self._buffers[table_name] = []
+
+        for field in junction_fields:
+            junction_table = self._junction_tables[(table_name, field)]
+            self._conn.execute(f"DROP TABLE IF EXISTS {junction_table} CASCADE")
+
+            sql = _load_sql("postgresql", "tables", junction_table)
+            if sql:
+                self._conn.execute(sql)
+            else:
+                fk_col = f"{table_name}_id"
+                ref_col = f"{_singularize(field)}_id"
+                self._conn.execute(
+                    f"CREATE TABLE {junction_table} ("
+                    f"{fk_col} BIGINT NOT NULL, "
+                    f"{ref_col} BIGINT NOT NULL, "
+                    f"PRIMARY KEY ({fk_col}, {ref_col}))"
+                )
+                self._table_columns[junction_table] = [fk_col, ref_col]
+
+            self._tables.add(junction_table)
+            self._buffers[junction_table] = []
+
+        return table_name
+
+    def _create_indices(self) -> None:
+        """Create indices on tables after data insertion."""
+        if not self._conn:
+            return
+        for table_name in self._tables:
+            sql = _load_sql("postgresql", "indices", table_name)
+            if sql:
+                self._conn.execute(sql)
+
+    def _flush(self, table_name: str) -> None:
+        """Flush buffered records to the database using COPY."""
+        if not self._conn or table_name not in self._buffers:
+            return
+        buffer = self._buffers[table_name]
+        if not buffer:
+            return
+
+        columns = self._table_columns.get(table_name)
+        if columns:
+            col_list = ", ".join(columns)
+            with self._conn.cursor().copy(
+                f"COPY {table_name} ({col_list}) FROM STDIN"
+            ) as copy:
+                for row in buffer:
+                    copy.write_row(row)
+        else:
+            with self._conn.cursor().copy(f"COPY {table_name} FROM STDIN") as copy:
+                for row in buffer:
+                    copy.write_row(row)
+        buffer.clear()
+
+    def _flush_all(self) -> None:
+        """Flush all buffered records."""
+        for table_name in self._buffers:
+            self._flush(table_name)
+
+    def write(self, record: NamedTuple) -> None:
+        if not self._conn:
+            return
+        table_name = self._ensure_table(record)
+        junction_fields = self._junction_fields.get(table_name, set())
+        record_id = record[0]
+
+        main_values: list[Any] = []
+        for field, value in zip(record._fields, record):
+            if field in junction_fields:
+                continue
+            if isinstance(value, list):
+                main_values.append(json.dumps(value))
+            else:
+                main_values.append(value)
+
+        self._buffers[table_name].append(tuple(main_values))
+        if len(self._buffers[table_name]) >= self.batch_size:
+            self._flush(table_name)
+
+        for field in junction_fields:
+            junction_table = self._junction_tables[(table_name, field)]
+            field_idx = record._fields.index(field)
+            values = record[field_idx]
+            if values:
+                for ref_id in values:
+                    self._buffers[junction_table].append((record_id, ref_id))
+                if len(self._buffers[junction_table]) >= self.batch_size:
+                    self._flush(junction_table)
+
+
 FILE_WRITERS: dict[FileFormat, type[Writer]] = {
     FileFormat.blackhole: BlackholeWriter,
     FileFormat.console: ConsoleWriter,
@@ -324,6 +501,7 @@ FILE_WRITERS: dict[FileFormat, type[Writer]] = {
 
 DATABASE_WRITERS: dict[DatabaseType, type[Writer]] = {
     DatabaseType.sqlite: SqliteWriter,
+    DatabaseType.postgresql: PostgresWriter,
 }
 
 

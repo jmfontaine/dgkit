@@ -57,6 +57,10 @@
 
 ### v0.2.0
 - Benchmark against alternatives
+- Optimize imports for optional features
 
 ### v0.3.0
-- Add `query` command to run a query against a converted file format or exported database.
+- Add `query` command to run a query against a converted file format or exported database
+
+### v0.4.0
+- Release package variant with unusual dependencies

@@ -14,6 +14,7 @@ class FileFormat(str, Enum):
 
 class DatabaseType(str, Enum):
     sqlite = "sqlite"
+    postgresql = "postgresql"
 
 
 class Compression(str, Enum):

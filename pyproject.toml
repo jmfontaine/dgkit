@@ -7,6 +7,7 @@ authors = [{ name = "Jean-Marc Fontaine", email = "jm@jmfontaine.net" }]
 requires-python = ">=3.10"
 dependencies = [
     "lxml>=6.0.2",
+    "psycopg[binary]>=3.3.2",
     "pyparsing>=3.3.1",
     "typer>=0.21.0",
 ]
@@ -19,6 +20,9 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=6.0.0",
 ]
+test = [
+    "testcontainers[postgres]>=4.13.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.18,<0.10.0"]
@@ -27,6 +31,10 @@ build-backend = "uv_build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+filterwarnings = [
+    # KLUDGE: testcontainers internal deprecation - https://github.com/testcontainers/testcontainers-python/issues/726
+    "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["dgkit"]
