@@ -7,3 +7,21 @@ CREATE TABLE artist (
     urls TEXT,
     name_variations TEXT
 );
+
+CREATE TABLE artist_alias (
+    artist_id INTEGER NOT NULL,
+    id INTEGER NOT NULL,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE artist_group (
+    artist_id INTEGER NOT NULL,
+    id INTEGER NOT NULL,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE artist_member (
+    artist_id INTEGER NOT NULL,
+    id INTEGER NOT NULL,
+    name TEXT NOT NULL
+);

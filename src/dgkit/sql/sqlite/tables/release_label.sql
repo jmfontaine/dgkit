@@ -1,6 +1,0 @@
-CREATE TABLE release_label (
-    release_id INTEGER NOT NULL,
-    id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    catalog_number TEXT
-);

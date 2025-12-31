@@ -1,6 +1,7 @@
 import bz2
 import gzip
 import json
+import re
 import sqlite3
 from importlib.resources import files
 from pathlib import Path
@@ -74,13 +75,50 @@ def parse_sqlite_dsn(dsn: str) -> str:
     return parsed.path
 
 
+# Map table prefixes to their merged SQL file
+_TABLE_FILE_MAP = {
+    "artist": "artist",
+    "label": "label",
+    "masterrelease": "masterrelease",
+    "release": "release",
+}
+
+
+def _get_sql_file_for_table(table_name: str) -> str:
+    """Get the SQL file name that contains a table's definition."""
+    # Check for exact match first (main tables)
+    if table_name in _TABLE_FILE_MAP:
+        return table_name
+    # For junction tables, extract prefix (e.g., artist_alias -> artist)
+    if "_" in table_name:
+        prefix = table_name.split("_")[0]
+        if prefix in _TABLE_FILE_MAP:
+            return prefix
+    return table_name
+
+
 def _load_sql(database: str, category: str, name: str) -> str | None:
-    """Load SQL from package resources."""
+    """Load SQL from package resources.
+
+    For tables, extracts the specific CREATE TABLE statement from merged files.
+    """
+    sql_file = _get_sql_file_for_table(name)
     try:
-        resource = files("dgkit.sql") / database / category / f"{name}.sql"
-        return resource.read_text()
+        resource = files("dgkit.sql") / database / category / f"{sql_file}.sql"
+        content = resource.read_text()
     except FileNotFoundError:
         return None
+
+    # For non-table categories (like indices), return the whole file
+    if category != "tables":
+        return content
+
+    # Extract the specific CREATE TABLE statement
+    pattern = rf"CREATE TABLE {re.escape(name)}\s*\([^;]+\);"
+    match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+    if match:
+        return match.group(0)
+    return None
 
 
 def open_compressed(path: Path, mode: str, compression: Compression) -> IO:
@@ -314,10 +352,15 @@ class SqliteWriter:
         """Create indices on tables after data insertion."""
         if not self._conn:
             return
+        executed_files: set[str] = set()
         for table_name in self._tables:
+            sql_file = _get_sql_file_for_table(table_name)
+            if sql_file in executed_files:
+                continue
             sql = _load_sql("sqlite", "indices", table_name)
             if sql:
                 self._conn.execute(sql)
+                executed_files.add(sql_file)
 
     def _flush(self, table_name: str) -> None:
         """Flush buffered records to the database."""
@@ -496,10 +539,15 @@ class PostgresWriter:
         """Create indices on tables after data insertion."""
         if not self._conn:
             return
+        executed_files: set[str] = set()
         for table_name in self._tables:
+            sql_file = _get_sql_file_for_table(table_name)
+            if sql_file in executed_files:
+                continue
             sql = _load_sql("postgresql", "indices", table_name)
             if sql:
                 self._conn.execute(sql)
+                executed_files.add(sql_file)
 
     def _flush(self, table_name: str) -> None:
         """Flush buffered records to the database using COPY."""
