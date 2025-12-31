@@ -2,8 +2,6 @@ import re
 from pathlib import Path
 from typing import Iterator
 
-from lxml import etree
-
 from dgkit.models import (
     Artist,
     ArtistRef,
@@ -26,29 +24,36 @@ from dgkit.models import (
     Track,
     Video,
 )
-from dgkit.types import Parser
+from dgkit.types import Element, Parser
 
 
-def _parse_text_list(parent: etree._Element | None, tag: str) -> list[str]:
+def _require_int(value: str | None, field: str = "id") -> int:
+    """Convert string to int, raising ValueError if None or empty."""
+    if not value:
+        raise ValueError(f"Required field '{field}' is missing or empty")
+    return int(value)
+
+
+def _parse_text_list(parent: Element | None, tag: str) -> list[str]:
     """Parse a list of text elements from a parent."""
     if parent is None:
         return []
     return [elem.text for elem in parent.findall(tag) if elem.text]
 
 
-def _parse_data_quality(elem: etree._Element) -> DataQuality | None:
+def _parse_data_quality(elem: Element) -> DataQuality | None:
     """Parse data_quality field, converting to enum."""
     text = elem.findtext("data_quality")
     return DataQuality(text) if text else None
 
 
-def _parse_release_status(elem: etree._Element) -> ReleaseStatus | None:
+def _parse_release_status(elem: Element) -> ReleaseStatus | None:
     """Parse release status attribute, converting to enum."""
     text = elem.get("status")
     return ReleaseStatus(text) if text else None
 
 
-def _parse_artist_refs(parent: etree._Element | None) -> list[ArtistRef]:
+def _parse_artist_refs(parent: Element | None) -> list[ArtistRef]:
     """Parse a list of artist references from a parent element."""
     if parent is None:
         return []
@@ -63,10 +68,10 @@ def _parse_artist_refs(parent: etree._Element | None) -> list[ArtistRef]:
 class ArtistParser:
     tag = "artist"
 
-    def parse(self, elem: etree._Element) -> Iterator[Artist]:
+    def parse(self, elem: Element) -> Iterator[Artist]:
         """Parse artist XML element into Artist record."""
         yield Artist(
-            id=int(elem.findtext("id")),
+            id=_require_int(elem.findtext("id")),
             data_quality=_parse_data_quality(elem),
             name=elem.findtext("name"),
             profile=elem.findtext("profile"),
@@ -79,7 +84,7 @@ class ArtistParser:
         )
 
 
-def _parse_label_refs(parent: etree._Element | None) -> list[LabelRef]:
+def _parse_label_refs(parent: Element | None) -> list[LabelRef]:
     """Parse a list of label references from a parent element."""
     if parent is None:
         return []
@@ -94,7 +99,7 @@ def _parse_label_refs(parent: etree._Element | None) -> list[LabelRef]:
 class LabelParser:
     tag = "label"
 
-    def parse(self, elem: etree._Element) -> Iterator[Label]:
+    def parse(self, elem: Element) -> Iterator[Label]:
         """Parse label XML element into Label record."""
         parent_label_elem = elem.find("parentLabel")
         parent_label = None
@@ -104,7 +109,7 @@ class LabelParser:
                 parent_label = LabelRef(id=int(parent_id), name=parent_label_elem.text)
 
         yield Label(
-            id=int(elem.get("id") or elem.findtext("id")),
+            id=_require_int(elem.get("id") or elem.findtext("id")),
             contact_info=elem.findtext("contactinfo"),
             data_quality=_parse_data_quality(elem),
             name=elem.findtext("name") or elem.text,
@@ -115,7 +120,7 @@ class LabelParser:
         )
 
 
-def _parse_credit_artists(parent: etree._Element | None) -> list[CreditArtist]:
+def _parse_credit_artists(parent: Element | None) -> list[CreditArtist]:
     """Parse artist credits (id, name, artist_name_variation, join)."""
     if parent is None:
         return []
@@ -137,7 +142,7 @@ def _parse_credit_artists(parent: etree._Element | None) -> list[CreditArtist]:
     return artists
 
 
-def _parse_extra_artists(parent: etree._Element | None) -> list[ExtraArtist]:
+def _parse_extra_artists(parent: Element | None) -> list[ExtraArtist]:
     """Parse extra artist credits (producer, engineer, etc.)."""
     if parent is None:
         return []
@@ -162,7 +167,7 @@ def _parse_extra_artists(parent: etree._Element | None) -> list[ExtraArtist]:
     return artists
 
 
-def _parse_release_labels(parent: etree._Element | None) -> list[ReleaseLabel]:
+def _parse_release_labels(parent: Element | None) -> list[ReleaseLabel]:
     """Parse label credits on a release."""
     if parent is None:
         return []
@@ -178,7 +183,7 @@ def _parse_release_labels(parent: etree._Element | None) -> list[ReleaseLabel]:
     return labels
 
 
-def _parse_formats(parent: etree._Element | None) -> list[Format]:
+def _parse_formats(parent: Element | None) -> list[Format]:
     """Parse format information."""
     if parent is None:
         return []
@@ -201,7 +206,7 @@ def _parse_formats(parent: etree._Element | None) -> list[Format]:
     return formats
 
 
-def _parse_sub_tracks(parent: etree._Element | None) -> list[SubTrack]:
+def _parse_sub_tracks(parent: Element | None) -> list[SubTrack]:
     """Parse sub_tracks within a track."""
     if parent is None:
         return []
@@ -224,7 +229,7 @@ def _parse_sub_tracks(parent: etree._Element | None) -> list[SubTrack]:
     return sub_tracks
 
 
-def _parse_tracks(parent: etree._Element | None) -> list[Track]:
+def _parse_tracks(parent: Element | None) -> list[Track]:
     """Parse tracklist."""
     if parent is None:
         return []
@@ -249,7 +254,7 @@ def _parse_tracks(parent: etree._Element | None) -> list[Track]:
     return tracks
 
 
-def _parse_identifiers(parent: etree._Element | None) -> list[Identifier]:
+def _parse_identifiers(parent: Element | None) -> list[Identifier]:
     """Parse identifiers (barcode, matrix, etc.)."""
     if parent is None:
         return []
@@ -269,7 +274,7 @@ def _parse_identifiers(parent: etree._Element | None) -> list[Identifier]:
     return identifiers
 
 
-def _parse_companies(parent: etree._Element | None) -> list[Company]:
+def _parse_companies(parent: Element | None) -> list[Company]:
     """Parse company credits."""
     if parent is None:
         return []
@@ -296,7 +301,7 @@ def _parse_companies(parent: etree._Element | None) -> list[Company]:
     return companies
 
 
-def _parse_series(parent: etree._Element | None) -> list[Series]:
+def _parse_series(parent: Element | None) -> list[Series]:
     """Parse series information."""
     if parent is None:
         return []
@@ -312,7 +317,7 @@ def _parse_series(parent: etree._Element | None) -> list[Series]:
     return series_list
 
 
-def _parse_videos(parent: etree._Element | None) -> list[Video]:
+def _parse_videos(parent: Element | None) -> list[Video]:
     """Parse videos from a master release."""
     if parent is None:
         return []
@@ -334,12 +339,12 @@ def _parse_videos(parent: etree._Element | None) -> list[Video]:
     return videos
 
 
-def _parse_genres(parent: etree._Element | None) -> list[str]:
+def _parse_genres(parent: Element | None) -> list[str]:
     """Parse genres list."""
     return _parse_text_list(parent, "genre")
 
 
-def _parse_styles(parent: etree._Element | None) -> list[str]:
+def _parse_styles(parent: Element | None) -> list[str]:
     """Parse styles list."""
     return _parse_text_list(parent, "style")
 
@@ -347,7 +352,7 @@ def _parse_styles(parent: etree._Element | None) -> list[str]:
 class MasterReleaseParser:
     tag = "master"
 
-    def parse(self, elem: etree._Element) -> Iterator[MasterRelease]:
+    def parse(self, elem: Element) -> Iterator[MasterRelease]:
         """Parse master XML element into MasterRelease record."""
         year_text = elem.findtext("year")
         year = int(year_text) if year_text else None
@@ -356,7 +361,7 @@ class MasterReleaseParser:
         main_release = int(main_release_text) if main_release_text else None
 
         yield MasterRelease(
-            id=int(elem.get("id")),
+            id=_require_int(elem.get("id")),
             data_quality=_parse_data_quality(elem),
             main_release=main_release,
             notes=elem.findtext("notes"),
@@ -372,7 +377,7 @@ class MasterReleaseParser:
 class ReleaseParser:
     tag = "release"
 
-    def parse(self, elem: etree._Element) -> Iterator[Release]:
+    def parse(self, elem: Element) -> Iterator[Release]:
         """Parse release XML element into Release record."""
         master_id_elem = elem.find("master_id")
         master_id = None
@@ -383,7 +388,7 @@ class ReleaseParser:
             is_main_release = is_main_attr == "true" if is_main_attr else None
 
         yield Release(
-            id=int(elem.get("id")),
+            id=_require_int(elem.get("id")),
             country=elem.findtext("country"),
             data_quality=_parse_data_quality(elem),
             is_main_release=is_main_release,

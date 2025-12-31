@@ -11,7 +11,7 @@ Filter expression grammar (BNF):
     value       ::= string | number | 'true' | 'false' | 'null'
 """
 
-from typing import Any, NamedTuple, Protocol
+from typing import Any, NamedTuple, Protocol, cast
 
 import pyparsing as pp
 
@@ -179,7 +179,7 @@ class UnsetFields:
         if not self.fields:
             return record
         updates = {f: None for f in self.fields if hasattr(record, f)}
-        return record._replace(**updates) if updates else record
+        return cast(NamedTuple, record._replace(**updates)) if updates else record
 
 
 class FilterChain:

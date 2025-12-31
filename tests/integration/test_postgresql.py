@@ -24,16 +24,22 @@ def postgres_dsn(postgres_container):
 def make_artist():
     """Factory for creating Artist instances with defaults."""
 
-    def _make(**kwargs):
-        defaults = {
-            "id": 1,
-            "name": "Test",
-            "real_name": None,
-            "profile": None,
-            "data_quality": None,
-        }
-        defaults.update(kwargs)
-        return Artist(**defaults)
+    def _make(
+        id: int = 1,
+        name: str | None = "Test",
+        real_name: str | None = None,
+        profile: str | None = None,
+        data_quality=None,
+        **kwargs,
+    ) -> Artist:
+        return Artist(
+            id=id,
+            data_quality=data_quality,
+            name=name,
+            profile=profile,
+            real_name=real_name,
+            **kwargs,
+        )
 
     return _make
 
@@ -76,7 +82,8 @@ class TestPostgresWriter:
 
         with psycopg.connect(postgres_dsn) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM artist")
-            assert cursor.fetchone()[0] == 3
+            row = cursor.fetchone()
+            assert row is not None and row[0] == 3
 
     def test_batch_flush(self, postgres_dsn, make_artist):
         """Test that records are flushed in batches."""
@@ -86,7 +93,8 @@ class TestPostgresWriter:
 
         with psycopg.connect(postgres_dsn) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM artist")
-            assert cursor.fetchone()[0] == 25
+            row = cursor.fetchone()
+            assert row is not None and row[0] == 25
 
 
 class TestLoadCommandPostgres:
@@ -101,7 +109,8 @@ class TestLoadCommandPostgres:
 
         with psycopg.connect(postgres_dsn) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM artist")
-            assert cursor.fetchone()[0] == 2
+            row = cursor.fetchone()
+            assert row is not None and row[0] == 2
 
     def test_load_with_filter(
         self, cli_runner, tmp_gzip_file, sample_artists_xml, postgres_dsn
@@ -124,4 +133,5 @@ class TestLoadCommandPostgres:
 
         with psycopg.connect(postgres_dsn) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM artist")
-            assert cursor.fetchone()[0] == 1
+            row = cursor.fetchone()
+            assert row is not None and row[0] == 1

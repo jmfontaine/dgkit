@@ -1,3 +1,5 @@
+from typing import cast
+
 from lxml import etree
 
 from dgkit.models import (
@@ -22,6 +24,7 @@ from dgkit.models import (
     Video,
 )
 from dgkit.parsers import ArtistParser, LabelParser, MasterReleaseParser, ReleaseParser
+from dgkit.types import Element
 
 
 class TestArtistParser:
@@ -54,7 +57,7 @@ class TestArtistParser:
         """
         elem = etree.fromstring(xml)
         parser = ArtistParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         artist = records[0]
@@ -82,7 +85,7 @@ class TestArtistParser:
         """
         elem = etree.fromstring(xml)
         parser = ArtistParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         artist = records[0]
@@ -119,7 +122,7 @@ class TestLabelParser:
         """
         elem = etree.fromstring(xml)
         parser = LabelParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         label = records[0]
@@ -145,7 +148,7 @@ class TestLabelParser:
         """
         elem = etree.fromstring(xml)
         parser = LabelParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         label = records[0]
@@ -199,7 +202,7 @@ class TestMasterReleaseParser:
         """
         elem = etree.fromstring(xml)
         parser = MasterReleaseParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         master = records[0]
@@ -234,7 +237,7 @@ class TestMasterReleaseParser:
         """
         elem = etree.fromstring(xml)
         parser = MasterReleaseParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         master = records[0]
@@ -326,7 +329,7 @@ class TestReleaseParser:
         """
         elem = etree.fromstring(xml)
         parser = ReleaseParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         release = records[0]
@@ -407,7 +410,7 @@ class TestReleaseParser:
         """
         elem = etree.fromstring(xml)
         parser = ReleaseParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         release = records[0]
@@ -464,7 +467,7 @@ class TestReleaseParser:
         """
         elem = etree.fromstring(xml)
         parser = ReleaseParser()
-        records = list(parser.parse(elem))
+        records = list(parser.parse(cast(Element, elem)))
 
         assert len(records) == 1
         release = records[0]

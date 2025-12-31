@@ -1,9 +1,21 @@
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import IO, Iterator, NamedTuple, Protocol, Self
+from typing import IO, Iterator, NamedTuple, Protocol, Self, runtime_checkable
 
-from lxml import etree
+
+@runtime_checkable
+class Element(Protocol):
+    """Protocol for XML element access (satisfied by lxml._Element and TrackingElement)."""
+
+    @property
+    def tag(self) -> str: ...
+    @property
+    def text(self) -> str | None: ...
+    def get(self, attr: str, default: str | None = None) -> str | None: ...
+    def findtext(self, tag: str, default: str | None = None) -> str | None: ...
+    def find(self, tag: str) -> "Element | None": ...
+    def findall(self, tag: str) -> list["Element"]: ...
 
 
 class FileFormat(str, Enum):
@@ -29,19 +41,25 @@ class Parser(Protocol):
 
     tag: str
 
-    def parse(self, elem: etree._Element) -> Iterator[NamedTuple]: ...
+    def parse(self, elem: Element) -> Iterator[NamedTuple]: ...
 
 
 class Reader(Protocol):
-    """Protocol for input readers.
-
-    Readers may optionally implement progress tracking by providing
-    `total_size` and `bytes_read` properties. Use `is_trackable()` from
-    pipeline module to check if a reader supports tracking.
-    """
+    """Protocol for input readers."""
 
     @contextmanager
     def open(self, path: Path) -> Iterator[IO[bytes]]: ...
+
+
+@runtime_checkable
+class TrackableReader(Reader, Protocol):
+    """Protocol for readers that support progress tracking."""
+
+    @property
+    def bytes_read(self) -> int: ...
+
+    @property
+    def total_size(self) -> int: ...
 
 
 class Writer(Protocol):

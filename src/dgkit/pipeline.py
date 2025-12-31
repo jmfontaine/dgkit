@@ -1,7 +1,7 @@
 import re
 from contextlib import ExitStack
 from pathlib import Path
-from typing import IO, Callable, Iterator
+from typing import IO, Callable, Iterator, TypeGuard, cast
 
 from lxml import etree
 from rich.progress import (
@@ -25,9 +25,11 @@ from dgkit.summary import Summary, SummaryCollector
 from dgkit.types import (
     Compression,
     DatabaseType,
+    Element,
     FileFormat,
     Parser,
     Reader,
+    TrackableReader,
     Writer,
 )
 from dgkit.validation import TrackingElement, UnhandledElementError
@@ -54,9 +56,9 @@ def find_elements(
             break
 
 
-def is_trackable(reader: Reader) -> bool:
+def is_trackable(reader: Reader) -> TypeGuard[TrackableReader]:
     """Check if a reader supports progress tracking."""
-    return hasattr(reader, "bytes_read") and hasattr(reader, "total_size")
+    return isinstance(reader, TrackableReader)
 
 
 class ElementCountColumn(ProgressColumn):
@@ -85,11 +87,12 @@ def execute(
     summary: SummaryCollector | None = None,
 ):
     """Execute the pipeline."""
-    track_bytes = on_progress_bytes is not None and is_trackable(reader)
+    trackable: TrackableReader | None = cast(TrackableReader, reader) if is_trackable(reader) else None
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
             # Wrap element for tracking if strict mode is enabled
-            parse_elem = TrackingElement(elem) if strict else elem
+            tracking_elem = TrackingElement(elem) if strict else None
+            parse_elem = cast(Element, tracking_elem if tracking_elem else elem)
 
             for record in parser.parse(parse_elem):
                 if summary:
@@ -109,8 +112,8 @@ def execute(
                     summary.record_written()
 
             # Check for unhandled elements in strict mode
-            if strict:
-                unaccessed = parse_elem.get_unaccessed()
+            if tracking_elem is not None:
+                unaccessed = tracking_elem.get_unaccessed()
                 if unaccessed:
                     element_id = elem.findtext("id") or elem.get("id") or "?"
                     paths = ", ".join(sorted(unaccessed))
@@ -120,8 +123,8 @@ def execute(
                     if summary:
                         summary.record_unhandled(message)
 
-            if track_bytes:
-                on_progress_bytes(reader.bytes_read)  # type: ignore[union-attr]
+            if trackable is not None and on_progress_bytes is not None:
+                on_progress_bytes(trackable.bytes_read)
             if on_progress_element:
                 on_progress_element()
 
@@ -173,6 +176,7 @@ class ProgressTracker:
 
         if show_progress:
             if self._use_elements:
+                assert limit is not None  # _use_elements implies limit is set
                 total = limit * len(valid_paths)
                 self._progress = stack.enter_context(create_progress_elements())
             else:

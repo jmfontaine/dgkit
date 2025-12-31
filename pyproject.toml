@@ -8,10 +8,9 @@ version = "0.1.0"
 description = "Discogs Toolkit"
 readme = "README.md"
 authors = [{ name = "Jean-Marc Fontaine", email = "jm@jmfontaine.net" }]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -28,13 +27,15 @@ scripts.dgkit = "dgkit.cli:app"
 
 [dependency-groups]
 dev = [
+  "lxml-stubs>=0.5.1",
   "pyproject-fmt>=2.11.1",
   "pytest>=8",
   "pytest-cov>=6",
   "ruff>=0.14.10",
   "sqlfluff>=3.5",
+  "testcontainers[postgres]>=4.13.3",
+  "ty>=0.0.8",
 ]
-test = ["testcontainers[postgres]>=4.13.3"]
 
 [tool.pyproject-fmt]
 column_width = 88

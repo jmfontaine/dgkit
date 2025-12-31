@@ -59,6 +59,7 @@ class TestTrackingElement:
 
         wrapper.findtext("id")
         aliases = wrapper.find("aliases")
+        assert aliases is not None
         for name in aliases.findall("name"):
             name.get("id")
             _ = name.text
@@ -71,6 +72,7 @@ class TestTrackingElement:
         wrapper = TrackingElement(elem)
 
         urls = wrapper.find("urls")
+        assert urls is not None
         url_list = urls.findall("url")
 
         assert len(url_list) == 2

@@ -8,16 +8,22 @@ from dgkit.models import Artist
 def make_artist():
     """Factory for creating Artist instances with defaults."""
 
-    def _make(**kwargs):
-        defaults = {
-            "id": 1,
-            "name": "Test",
-            "real_name": None,
-            "profile": None,
-            "data_quality": None,
-        }
-        defaults.update(kwargs)
-        return Artist(**defaults)
+    def _make(
+        id: int = 1,
+        name: str | None = "Test",
+        real_name: str | None = None,
+        profile: str | None = None,
+        data_quality=None,
+        **kwargs,
+    ) -> Artist:
+        return Artist(
+            id=id,
+            data_quality=data_quality,
+            name=name,
+            profile=profile,
+            real_name=real_name,
+            **kwargs,
+        )
 
     return _make
 
@@ -75,6 +81,7 @@ class TestUnsetFields:
         f = UnsetFields(["name"])
         artist = make_artist(name="Test", profile="Bio")
         result = f(artist)
+        assert isinstance(result, Artist)
         assert result.name is None
         assert result.profile == "Bio"
 
@@ -82,6 +89,7 @@ class TestUnsetFields:
         f = UnsetFields(["name", "profile"])
         artist = make_artist(name="Test", profile="Bio")
         result = f(artist)
+        assert isinstance(result, Artist)
         assert result.name is None
         assert result.profile is None
 

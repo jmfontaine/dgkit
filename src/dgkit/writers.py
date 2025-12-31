@@ -5,13 +5,27 @@ import re
 import sqlite3
 from importlib.resources import files
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, NamedTuple, Self, get_args, get_origin
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    LiteralString,
+    NamedTuple,
+    Protocol,
+    Self,
+    TypeGuard,
+    cast,
+    get_args,
+    get_origin,
+)
 from urllib.parse import urlparse
 
 from dgkit.types import Compression, DatabaseType, FileFormat, Writer
 
 if TYPE_CHECKING:
     import psycopg
+
+from psycopg import sql as pgsql
 
 
 def _get_list_element_type(field_type: type) -> type | None:
@@ -23,7 +37,14 @@ def _get_list_element_type(field_type: type) -> type | None:
     return None
 
 
-def _is_namedtuple(cls: type) -> bool:
+class _NamedTupleType(Protocol):
+    """Protocol for NamedTuple class types (not instances)."""
+
+    _fields: tuple[str, ...]
+    __annotations__: dict[str, type]
+
+
+def _is_namedtuple(cls: type) -> TypeGuard[_NamedTupleType]:
     """Check if a class is a NamedTuple."""
     return (
         isinstance(cls, type)
@@ -121,13 +142,13 @@ def _load_sql(database: str, category: str, name: str) -> str | None:
     return None
 
 
-def open_compressed(path: Path, mode: str, compression: Compression) -> IO:
+def open_compressed(path: Path, mode: str, compression: Compression) -> IO[Any]:
     """Open a file with optional compression."""
     match compression:
         case Compression.gzip:
-            return gzip.open(path, mode)
+            return cast(IO[Any], gzip.open(path, mode))
         case Compression.bz2:
-            return bz2.open(path, mode)
+            return cast(IO[Any], bz2.open(path, mode))
         case _:
             return open(path, mode)
 
@@ -278,13 +299,14 @@ class SqliteWriter:
         # Identify junction table fields (list[int] or list[NamedTuple])
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is int or _is_namedtuple(elem_type):
+            if elem_type is not None and (elem_type is int or _is_namedtuple(elem_type)):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
                 self._junction_tables[(table_name, field)] = (junction_table, elem_type)
 
         self._junction_fields[table_name] = junction_fields
 
+        assert self._conn is not None  # Guaranteed after __enter__
         # Drop and recreate main table
         self._conn.execute(f"DROP TABLE IF EXISTS {table_name}")
 
@@ -455,6 +477,9 @@ class PostgresWriter:
 
     def _ensure_table(self, record: NamedTuple) -> str:
         """Create table for record type if it doesn't exist."""
+        assert self._conn is not None, "Connection must exist in _ensure_table"
+        conn = self._conn
+
         table_name = type(record).__name__.lower()
         if table_name in self._tables:
             return table_name
@@ -464,24 +489,27 @@ class PostgresWriter:
 
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is int or _is_namedtuple(elem_type):
+            if elem_type is not None and (elem_type is int or _is_namedtuple(elem_type)):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
                 self._junction_tables[(table_name, field)] = (junction_table, elem_type)
 
         self._junction_fields[table_name] = junction_fields
 
-        self._conn.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
+        conn.execute(
+            pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(pgsql.Identifier(table_name))
+        )
 
         # Track column names for COPY (excluding junction fields)
         column_names = [f for f in record._fields if f not in junction_fields]
         self._table_columns[table_name] = column_names
 
-        sql = _load_sql("postgresql", "tables", table_name)
-        if sql:
-            self._conn.execute(sql)
+        schema_sql = _load_sql("postgresql", "tables", table_name)
+        if schema_sql:
+            # SQL loaded from package resources is trusted
+            conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
         else:
-            columns = []
+            col_defs: list[pgsql.Composable] = []
             for i, field in enumerate(record._fields):
                 if field in junction_fields:
                     continue
@@ -491,47 +519,77 @@ class PostgresWriter:
                     field_type = next((t for t in args if t is not type(None)), str)
                 pg_type = POSTGRES_TYPE_MAP.get(field_type, "TEXT")
                 if i == 0 and pg_type == "BIGINT":
-                    columns.append(f"{field} BIGINT PRIMARY KEY")
+                    col_defs.append(
+                        pgsql.SQL("{} BIGINT PRIMARY KEY").format(pgsql.Identifier(field))
+                    )
                 else:
-                    columns.append(f"{field} {pg_type}")
-            self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
+                    col_defs.append(
+                        pgsql.SQL("{} ").format(pgsql.Identifier(field))
+                        + pgsql.SQL(cast(LiteralString, pg_type))
+                    )
+            conn.execute(
+                pgsql.SQL("CREATE TABLE {} ({})").format(
+                    pgsql.Identifier(table_name), pgsql.SQL(", ").join(col_defs)
+                )
+            )
 
         self._tables.add(table_name)
         self._buffers[table_name] = []
 
         for field in junction_fields:
             junction_table, elem_type = self._junction_tables[(table_name, field)]
-            self._conn.execute(f"DROP TABLE IF EXISTS {junction_table} CASCADE")
+            conn.execute(
+                pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
+                    pgsql.Identifier(junction_table)
+                )
+            )
 
             fk_col = f"{table_name}_id"
             if elem_type is int:
                 ref_col = f"{_singularize(field)}_id"
                 junction_columns = [fk_col, ref_col]
             elif _is_namedtuple(elem_type):
-                junction_columns = [fk_col] + list(elem_type._fields)
+                nt_type = cast(_NamedTupleType, elem_type)
+                junction_columns = [fk_col] + list(nt_type._fields)
             else:
                 junction_columns = [fk_col]
             self._table_columns[junction_table] = junction_columns
 
-            sql = _load_sql("postgresql", "tables", junction_table)
-            if sql:
-                self._conn.execute(sql)
+            schema_sql = _load_sql("postgresql", "tables", junction_table)
+            if schema_sql:
+                # SQL loaded from package resources is trusted
+                conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
             elif elem_type is int:
                 ref_col = f"{_singularize(field)}_id"
-                self._conn.execute(
-                    f"CREATE TABLE {junction_table} ("
-                    f"{fk_col} BIGINT NOT NULL, "
-                    f"{ref_col} BIGINT NOT NULL, "
-                    f"PRIMARY KEY ({fk_col}, {ref_col}))"
+                conn.execute(
+                    pgsql.SQL(
+                        "CREATE TABLE {} ("
+                        "{} BIGINT NOT NULL, "
+                        "{} BIGINT NOT NULL, "
+                        "PRIMARY KEY ({}, {}))"
+                    ).format(
+                        pgsql.Identifier(junction_table),
+                        pgsql.Identifier(fk_col),
+                        pgsql.Identifier(ref_col),
+                        pgsql.Identifier(fk_col),
+                        pgsql.Identifier(ref_col),
+                    )
                 )
             elif _is_namedtuple(elem_type):
-                elem_annotations = elem_type.__annotations__
-                columns = [f"{fk_col} BIGINT NOT NULL"]
-                for elem_field, elem_field_type in elem_annotations.items():
+                nt_type = cast(_NamedTupleType, elem_type)
+                col_defs: list[pgsql.Composable] = [
+                    pgsql.SQL("{} BIGINT NOT NULL").format(pgsql.Identifier(fk_col))
+                ]
+                for elem_field, elem_field_type in nt_type.__annotations__.items():
                     pg_type = POSTGRES_TYPE_MAP.get(elem_field_type, "TEXT")
-                    columns.append(f"{elem_field} {pg_type}")
-                self._conn.execute(
-                    f"CREATE TABLE {junction_table} ({', '.join(columns)})"
+                    col_defs.append(
+                        pgsql.SQL("{} ").format(pgsql.Identifier(elem_field))
+                        + pgsql.SQL(cast(LiteralString, pg_type))
+                    )
+                conn.execute(
+                    pgsql.SQL("CREATE TABLE {} ({})").format(
+                        pgsql.Identifier(junction_table), pgsql.SQL(", ").join(col_defs)
+                    )
                 )
 
             self._tables.add(junction_table)
@@ -548,9 +606,10 @@ class PostgresWriter:
             sql_file = _get_sql_file_for_table(table_name)
             if sql_file in executed_files:
                 continue
-            sql = _load_sql("postgresql", "indices", table_name)
-            if sql:
-                self._conn.execute(sql)
+            index_sql = _load_sql("postgresql", "indices", table_name)
+            if index_sql:
+                # SQL loaded from package resources is trusted
+                self._conn.execute(pgsql.SQL(cast(LiteralString, index_sql)))
                 executed_files.add(sql_file)
 
     def _flush(self, table_name: str) -> None:
@@ -563,14 +622,16 @@ class PostgresWriter:
 
         columns = self._table_columns.get(table_name)
         if columns:
-            col_list = ", ".join(columns)
-            with self._conn.cursor().copy(
-                f"COPY {table_name} ({col_list}) FROM STDIN"
-            ) as copy:
+            col_ids = pgsql.SQL(", ").join(pgsql.Identifier(c) for c in columns)
+            query = pgsql.SQL("COPY {} ({}) FROM STDIN").format(
+                pgsql.Identifier(table_name), col_ids
+            )
+            with self._conn.cursor().copy(query) as copy:
                 for row in buffer:
                     copy.write_row(row)
         else:
-            with self._conn.cursor().copy(f"COPY {table_name} FROM STDIN") as copy:
+            query = pgsql.SQL("COPY {} FROM STDIN").format(pgsql.Identifier(table_name))
+            with self._conn.cursor().copy(query) as copy:
                 for row in buffer:
                     copy.write_row(row)
         buffer.clear()

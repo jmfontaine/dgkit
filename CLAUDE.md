@@ -30,6 +30,19 @@ Add complexity only when there's a demonstrated need.
 
 Do not optimize based on speculation. If a design decision is questioned for performance reasons, measure first. XML parsing and I/O typically dominate; micro-optimizations elsewhere rarely matter.
 
+### Avoid Type Ignores
+
+Do not use `# type: ignore` comments. They hide real issues and accumulate technical debt. Instead:
+- Use `TypeGuard` for runtime type narrowing
+- Use `Protocol` for structural typing
+- Use `cast()` when the type system cannot express a known-safe pattern:
+  - TypeGuard narrowing in ternary expressions
+  - `LiteralString` for SQL loaded from trusted package resources
+  - Protocol types after TypeGuard checks when narrowing fails
+- Refactor code to make types explicit
+
+If a type ignore seems necessary, investigate whether the code design can be improved first.
+
 ## Design Guidelines
 
 ### Enums for Fixed Values

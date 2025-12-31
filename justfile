@@ -23,14 +23,10 @@ lint:
     ruff check
     sqlfluff lint src/dgkit/sql
 
-# Run all tests
-test:
-    pytest --cov    
+# Run tests (optional: path or pytest args)
+test *args:
+    pytest --cov {{ args }}
 
-# Run integration tests
-test-integration:
-    pytest tests/integration    
-
-# Run unit tests
-test-unit:
-    pytest tests/unit
+# Type check source code
+typecheck:
+    ty check
