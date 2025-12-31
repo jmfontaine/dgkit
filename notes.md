@@ -36,16 +36,16 @@
 - How do we test dgkit on Linux and Windows machines (the author works on a Mac)?
 - How do we design the GitHub Actions workflows to achieve all of our goals in terms of QA and deployments?
 - Should the `load` command take a DSN string as input or options (e.g., --host --db --user --port --pwd)?
-
-
 - The parsers should not yield multiple record types. Each entity type should be a single record. It is up to the writers to split that record into multiple records if required by the destination. Splitting records up at the parser level means that writers that can handle records with nested data have to merge the records back.
+
+- Maybe the SQLite writer should not use `--dsn` but `--path`.
 
 
 - How to best provide various levels of information to the user about operations?
 - Have the `--summary` option measure the number of XML elements processed to align with the `--limit` option and avoid having a limit of 1000 but see 2345 records processed in the summary which is confusing.
-- Maybe the SQLite writer should not use `--dsn` but `--path`.
 
 ### v0.1.0
+- Add PostgreSQL writer
 - Finalize models
 - Test UX
 - Review code
@@ -56,5 +56,7 @@
 - Package release
 
 ### v0.2.0
-- Add PostgreSQL writer
 - Benchmark against alternatives
+
+### v0.3.0
+- Add `query` command to run a query against a converted file format or exported database.

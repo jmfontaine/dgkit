@@ -7,11 +7,7 @@ class Artist(NamedTuple):
     profile: str | None
     real_name: str | None
     urls: list[str] = []
-
-
-class ArtistAlias(NamedTuple):
-    artist_id: int
-    alias_id: int
+    aliases: list[int] = []  # List of artist IDs that are aliases
 
 
 class Label(NamedTuple):
