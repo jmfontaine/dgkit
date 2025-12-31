@@ -14,21 +14,21 @@ def _parse_text_list(parent: etree._Element | None, tag: str) -> list[str]:
 
 Refactored: `ArtistParser` (urls, name_variations), `LabelParser` (urls), `_parse_formats` (descriptions), `_parse_genres`, `_parse_styles`.
 
-### 2. Fix Awkward Context Manager Usage (pipeline.py:200-201, 295-296)
+### 2. ~~Fix Awkward Context Manager Usage (pipeline.py)~~ DONE
 
+Replaced manual `__enter__()` calls and `try/finally` blocks with `ExitStack`:
 ```python
-# Current
-summary = SummaryCollector(options={"strict": strict}) if show_summary else None
-if summary:
-    summary.__enter__()
-
-# Proposed
-from contextlib import ExitStack
-
 with ExitStack() as stack:
-    summary = stack.enter_context(SummaryCollector(options={"strict": strict})) if show_summary else None
-    # ... rest of function
+    summary = (
+        stack.enter_context(SummaryCollector(options={"strict": strict}))
+        if show_summary
+        else None
+    )
+    progress = stack.enter_context(create_progress_bytes()) if show_progress else None
+    # ... rest of function (no try/finally needed)
 ```
+
+Refactored both `convert()` and `load()` functions.
 
 ### 3. Extract Common Progress Setup (pipeline.py)
 

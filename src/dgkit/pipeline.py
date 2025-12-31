@@ -1,4 +1,5 @@
 import re
+from contextlib import ExitStack
 from pathlib import Path
 from typing import IO, Callable, Iterator
 
@@ -195,27 +196,28 @@ def convert(
     valid_paths = [p for p in paths if p.is_file()]
     writer_cls = FILE_WRITERS[format]
     filter = FilterChain(filters) if filters else None
-    summary = SummaryCollector(options={"strict": strict}) if show_summary else None
-
-    if summary:
-        summary.__enter__()
 
     # Use element-based progress when limit is set, bytes-based otherwise
     use_element_progress = limit is not None
-    progress: Progress | None = None
-    task_id: TaskID | None = None
 
-    if show_progress:
-        if use_element_progress:
-            total = limit * len(valid_paths)
-            progress = create_progress_elements()
-        else:
-            total = sum(p.stat().st_size for p in valid_paths)
-            progress = create_progress_bytes()
-        progress.start()
-        task_id = progress.add_task("Processing", total=total)
+    with ExitStack() as stack:
+        summary = (
+            stack.enter_context(SummaryCollector(options={"strict": strict}))
+            if show_summary
+            else None
+        )
 
-    try:
+        progress: Progress | None = None
+        task_id: TaskID | None = None
+        if show_progress:
+            if use_element_progress:
+                total = limit * len(valid_paths)
+                progress = stack.enter_context(create_progress_elements())
+            else:
+                total = sum(p.stat().st_size for p in valid_paths)
+                progress = stack.enter_context(create_progress_bytes())
+            task_id = progress.add_task("Processing", total=total)
+
         bytes_completed = 0
 
         def on_progress_bytes(bytes_read: int) -> None:
@@ -268,11 +270,8 @@ def convert(
                         writer=writer,
                     )
                 bytes_completed += path.stat().st_size
-    finally:
-        if progress:
-            progress.stop()
 
-    return summary.result() if summary else None
+        return summary.result() if summary else None
 
 
 def load(
@@ -290,27 +289,28 @@ def load(
     """Load XML dumps into a database."""
     valid_paths = [p for p in paths if p.is_file()]
     filter = FilterChain(filters) if filters else None
-    summary = SummaryCollector(options={"strict": strict}) if show_summary else None
-
-    if summary:
-        summary.__enter__()
 
     # Use element-based progress when limit is set, bytes-based otherwise
     use_element_progress = limit is not None
-    progress: Progress | None = None
-    task_id: TaskID | None = None
 
-    if show_progress:
-        if use_element_progress:
-            total = limit * len(valid_paths)
-            progress = create_progress_elements()
-        else:
-            total = sum(p.stat().st_size for p in valid_paths)
-            progress = create_progress_bytes()
-        progress.start()
-        task_id = progress.add_task("Processing", total=total)
+    with ExitStack() as stack:
+        summary = (
+            stack.enter_context(SummaryCollector(options={"strict": strict}))
+            if show_summary
+            else None
+        )
 
-    try:
+        progress: Progress | None = None
+        task_id: TaskID | None = None
+        if show_progress:
+            if use_element_progress:
+                total = limit * len(valid_paths)
+                progress = stack.enter_context(create_progress_elements())
+            else:
+                total = sum(p.stat().st_size for p in valid_paths)
+                progress = stack.enter_context(create_progress_bytes())
+            task_id = progress.add_task("Processing", total=total)
+
         bytes_completed = 0
 
         def on_progress_bytes(bytes_read: int) -> None:
@@ -340,8 +340,5 @@ def load(
                     writer=writer,
                 )
                 bytes_completed += path.stat().st_size
-    finally:
-        if progress:
-            progress.stop()
 
-    return summary.result() if summary else None
+        return summary.result() if summary else None
