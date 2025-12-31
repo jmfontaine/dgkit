@@ -9,6 +9,7 @@ from pathlib import Path
 class FileFormat(str, Enum):
     blackhole = "blackhole"
     console = "console"
+    json = "json"
     jsonl = "jsonl"
 
 

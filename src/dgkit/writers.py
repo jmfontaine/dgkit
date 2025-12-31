@@ -132,6 +132,36 @@ class ConsoleWriter:
         print(record)
 
 
+class JsonWriter:
+    """Writer that outputs records as a JSON array."""
+
+    aggregates_inputs = False
+
+    def __init__(self, path: Path, compression: Compression = Compression.none):
+        self.path = path
+        self.compression = compression
+        self._fp: IO | None = None
+        self._first = True
+
+    def __enter__(self) -> Self:
+        self._fp = open_compressed(self.path, "wt", self.compression)
+        self._fp.write("[\n")
+        self._first = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self._fp:
+            self._fp.write("\n]\n")
+            self._fp.close()
+
+    def write(self, record: NamedTuple) -> None:
+        if self._fp:
+            if not self._first:
+                self._fp.write(",\n")
+            self._first = False
+            self._fp.write(json.dumps(record._asdict()))
+
+
 class JsonlWriter:
     """Writer that outputs records as JSON Lines."""
 
@@ -535,6 +565,7 @@ class PostgresWriter:
 FILE_WRITERS: dict[FileFormat, type[Writer]] = {
     FileFormat.blackhole: BlackholeWriter,
     FileFormat.console: ConsoleWriter,
+    FileFormat.json: JsonWriter,
     FileFormat.jsonl: JsonlWriter,
 }
 
