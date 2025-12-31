@@ -4,7 +4,7 @@ from lxml import etree
 from pathlib import Path
 from typing import Iterator
 
-from dgkit.models import Artist, ArtistRef, Label, MasterRelease, Release
+from dgkit.models import Artist, ArtistRef, Label, LabelRef, MasterRelease, Release
 from dgkit.types import Parser
 
 
@@ -53,14 +53,46 @@ class ArtistParser:
         )
 
 
+def _parse_label_refs(parent: etree._Element | None) -> list[LabelRef]:
+    """Parse a list of label references from a parent element."""
+    if parent is None:
+        return []
+    refs = []
+    for label_elem in parent.findall("label"):
+        ref_id = label_elem.get("id")
+        if ref_id and label_elem.text:
+            refs.append(LabelRef(id=int(ref_id), name=label_elem.text))
+    return refs
+
+
 class LabelParser:
     tag = "label"
 
     def parse(self, elem: etree._Element) -> Iterator[Label]:
         """Parse label XML element into Label record."""
+        urls_elem = elem.find("urls")
+        urls = (
+            [url.text for url in urls_elem.findall("url") if url.text]
+            if urls_elem is not None
+            else []
+        )
+
+        parent_label_elem = elem.find("parentLabel")
+        parent_label = None
+        if parent_label_elem is not None:
+            parent_id = parent_label_elem.get("id")
+            if parent_id and parent_label_elem.text:
+                parent_label = LabelRef(id=int(parent_id), name=parent_label_elem.text)
+
         yield Label(
             id=int(elem.get("id") or elem.findtext("id")),
             name=elem.findtext("name") or elem.text,
+            contact_info=elem.findtext("contactinfo"),
+            profile=elem.findtext("profile"),
+            data_quality=elem.findtext("data_quality"),
+            urls=urls,
+            sublabels=_parse_label_refs(elem.find("sublabels")),
+            parent_label=parent_label,
         )
 
 

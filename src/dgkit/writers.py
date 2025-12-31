@@ -313,12 +313,12 @@ class SqliteWriter:
         junction_fields = self._junction_fields.get(table_name, set())
         record_id = record[0]  # Assume first field is the ID
 
-        # Build main table values (excluding junction fields, serialize other lists as JSON)
+        # Build main table values (excluding junction fields, serialize lists/tuples as JSON)
         main_values: list[Any] = []
         for field, value in zip(record._fields, record):
             if field in junction_fields:
                 continue
-            if isinstance(value, list):
+            if isinstance(value, (list, tuple)):
                 main_values.append(json.dumps(value))
             else:
                 main_values.append(value)
@@ -509,7 +509,7 @@ class PostgresWriter:
         for field, value in zip(record._fields, record):
             if field in junction_fields:
                 continue
-            if isinstance(value, list):
+            if isinstance(value, (list, tuple)):
                 main_values.append(json.dumps(value))
             else:
                 main_values.append(value)

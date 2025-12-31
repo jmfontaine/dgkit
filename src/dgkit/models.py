@@ -20,9 +20,21 @@ class Artist(NamedTuple):
     groups: list[ArtistRef] = []
 
 
+class LabelRef(NamedTuple):
+    """Reference to another label (used for sublabels, parent_label)."""
+    id: int
+    name: str
+
+
 class Label(NamedTuple):
     id: int
     name: str | None
+    contact_info: str | None
+    profile: str | None
+    data_quality: str | None
+    urls: list[str] = []
+    sublabels: list[LabelRef] = []
+    parent_label: LabelRef | None = None
 
 
 class MasterRelease(NamedTuple):
