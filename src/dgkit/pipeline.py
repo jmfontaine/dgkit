@@ -144,7 +144,7 @@ def convert(
 def load(
     database: DatabaseType,
     paths: list[Path],
-    db_path: Path,
+    dsn: str,
     limit: int | None = None,
     filters: list[Filter] | None = None,
     batch_size: int = 10000,
@@ -159,7 +159,7 @@ def load(
     if summary:
         summary.__enter__()
 
-    with get_database_writer(database, path=db_path, batch_size=batch_size) as writer:
+    with get_database_writer(database, dsn=dsn, batch_size=batch_size) as writer:
         for path in valid_paths:
             parser = get_parser(path)
             execute(

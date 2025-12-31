@@ -3,11 +3,43 @@ import gzip
 import json
 import sqlite3
 from importlib.resources import files
+from urllib.parse import urlparse
 
 from pathlib import Path
 from typing import IO, Any, NamedTuple, Self
 
 from dgkit.types import Compression, DatabaseType, FileFormat, Writer
+
+
+def parse_sqlite_dsn(dsn: str) -> str:
+    """Parse SQLite DSN and return the database path.
+
+    Supports:
+    - sqlite:///./relative.db (relative path)
+    - sqlite:////absolute/path.db (absolute path)
+    - sqlite://:memory: (in-memory)
+    - Plain path (passed through as-is)
+    """
+    parsed = urlparse(dsn)
+
+    # Plain path (no scheme)
+    if not parsed.scheme:
+        return dsn
+
+    if parsed.scheme != "sqlite":
+        raise ValueError(f"Unsupported scheme: {parsed.scheme}")
+
+    # Handle :memory: special case
+    if parsed.path == "/:memory:":
+        return ":memory:"
+
+    # urlparse keeps leading slash, remove one level for relative paths
+    # sqlite:///./foo.db -> path="/./foo.db" -> "./foo.db"
+    # sqlite:////absolute/path.db -> path="//absolute/path.db" -> "/absolute/path.db"
+    if parsed.path.startswith("/"):
+        return parsed.path[1:]
+
+    return parsed.path
 
 
 def _load_sql(database: str, category: str, name: str) -> str | None:
@@ -104,8 +136,9 @@ class SqliteWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, path: Path, batch_size: int = 10000, **kwargs: Any):
-        self.path = path
+    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any):
+        self.dsn = dsn
+        self.path = parse_sqlite_dsn(dsn)
         self.batch_size = batch_size
         self._conn: sqlite3.Connection | None = None
         self._tables: set[str] = set()

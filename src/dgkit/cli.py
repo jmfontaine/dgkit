@@ -85,8 +85,8 @@ def load_cmd(
         DatabaseType,
         typer.Option("--database", "-d", case_sensitive=False, help="Database type."),
     ],
-    path: Annotated[
-        Path | None, typer.Option("--path", "-p", help="Database file path.")
+    dsn: Annotated[
+        str | None, typer.Option("--dsn", help="Database connection string.")
     ] = None,
     limit: Annotated[
         int | None, typer.Option(help="Max records per file.")
@@ -109,19 +109,22 @@ def load_cmd(
 ):
     valid_files = [f for f in files if f.is_file()]
 
-    # Derive database path if not provided
-    if path is None:
+    # Derive DSN from input filenames if not provided
+    if dsn is None:
         path = build_database_path(valid_files, Path("."))
+        dsn = str(path)
 
-    # Check for existing database
-    if path.exists() and not overwrite:
-        typer.echo(f"Database already exists: {path}")
-        if not typer.confirm("Overwrite?"):
-            raise typer.Abort()
+    # Check for existing database (only for file-based DSNs)
+    if not dsn.startswith("sqlite://") or "/:memory:" not in dsn:
+        db_path = Path(dsn.replace("sqlite:///", "").replace("sqlite://", ""))
+        if db_path.exists() and not overwrite:
+            typer.echo(f"Database already exists: {db_path}")
+            if not typer.confirm("Overwrite?"):
+                raise typer.Abort()
 
     filters = build_filters(drop_if, unset)
     result = load(
-        database, files, db_path=path, limit=limit,
+        database, files, dsn=dsn, limit=limit,
         filters=filters, batch_size=batch, show_summary=summary
     )
     if result:
