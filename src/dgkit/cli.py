@@ -1,3 +1,5 @@
+import sys
+
 import typer
 from pathlib import Path
 from typing import Annotated
@@ -11,6 +13,9 @@ from dgkit.pipeline import (
 )
 from dgkit.types import Compression, DatabaseType, FileFormat
 
+# Global debug flag
+_debug = False
+
 
 def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
     """Build filter list from CLI options."""
@@ -22,7 +27,29 @@ def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
         filters.append(unset_filter)
     return filters
 
+
+def _exception_handler(exc_type, exc_value, exc_traceback):
+    """Handle exceptions with clean output unless debug mode is enabled."""
+    if _debug:
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    else:
+        typer.echo(f"Error: {exc_value}", err=True)
+        raise SystemExit(1)
+
+
 app = typer.Typer(help="Discogs Toolkit")
+
+
+@app.callback()
+def main(
+    debug: Annotated[
+        bool, typer.Option("--debug", help="Show full error tracebacks.")
+    ] = False,
+):
+    """Discogs Toolkit - Process Discogs data dumps."""
+    global _debug
+    _debug = debug
+    sys.excepthook = _exception_handler
 
 
 @app.command(name="convert", help="Convert data dumps to another format.")
