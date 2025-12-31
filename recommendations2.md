@@ -66,22 +66,13 @@ aliases = [
 ]
 ```
 
-### 5. Simplify `parse_unset` (filters.py:89-95)
+### 5. ~~Simplify `parse_unset` (filters.py)~~ DONE
 
+Replaced loop with nested list comprehension:
 ```python
-# Current
-def parse_unset(fields: list[str]) -> UnsetFilter | None:
-    all_fields = []
-    for field_list in fields:
-        all_fields.extend(f.strip() for f in field_list.split(","))
-    if not all_fields:
-        return None
-    return UnsetFilter(fields=all_fields)
-
-# Proposed
-def parse_unset(fields: list[str]) -> UnsetFilter | None:
-    all_fields = [f.strip() for field_list in fields for f in field_list.split(",")]
-    return UnsetFilter(fields=all_fields) if all_fields else None
+def parse_unset(values: list[str]) -> UnsetFields | None:
+    fields = [f.strip() for value in values for f in value.split(",") if f.strip()]
+    return UnsetFields(fields) if fields else None
 ```
 
 ### 6. Consolidate Import Grouping Style

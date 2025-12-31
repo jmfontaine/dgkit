@@ -203,7 +203,5 @@ def parse_filter(expression: str) -> ExpressionFilter:
 
 def parse_unset(values: list[str]) -> UnsetFields | None:
     """Parse --unset field1,field2 arguments into UnsetFields filter."""
-    fields = []
-    for value in values:
-        fields.extend(f.strip() for f in value.split(",") if f.strip())
+    fields = [f.strip() for value in values for f in value.split(",") if f.strip()]
     return UnsetFields(fields) if fields else None
