@@ -41,19 +41,19 @@
 - The parsers should not yield multiple record types. Each entity type should be a single record. It is up to the writers to split that record into multiple records if required by the destination. Splitting records up at the parser level means that writers that can handle records with nested data have to merge the records back.
 - Maybe the SQLite writer should not use `--dsn` but `--path`.
 - How to best provide various levels of information to the user about operations?
-
 - How to check if the XML element has nodes or attributes we did not extract to the model? I want to make sure that the model represents the raw XML data accurately. Discogs data can be weird at times so I would like to have a way to catch unhandled edge cases. I am afraid it would hurt performance so it might have to be an option that is disabled by default. Maybe `--paranoia` or `--throrough`.
 
 
 
 - How to handle property values that are actually enums in disguise? For example the `dataquality` property has a small fixed number of values. Storing them as string is a waste of space.
 - Should we offer an option to normalize the data in the file writers to avoid bloating them with duplicated data?
+- Create views for entity types that are not explicitly defined but whose data is spread over other entities (e.g., series whose data is available in releases).
 
 
-### v0.1.0
+### v0.1.0 - Foundations
 + Add PostgreSQL writer
 + Clean messaging on failure (no debug trace unless enabled by the user)
-- Finalize models
++ Finalize models
 - Test UX
 - Review code
 - Run linters
@@ -61,13 +61,16 @@
 - Create QA pipeline
 - Create publish pipeline
 - Benchmark against alternatives
+- Create CLAUDE.md file
 - Package release
 
-### v0.2.0
+### v0.2.0 - Performance Tuning
 - Optimize imports for optional features
 
-### v0.3.0
+### v0.3.0 - Additional Features
 - Add `query` command to run a query against a converted file format or exported database
 
-### v0.4.0
+### v0.4.0 - Optimized Deployment
 - Release package variant with unusual dependencies
+
+### v0.5.0 - UX Improvements

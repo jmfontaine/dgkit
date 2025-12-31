@@ -108,23 +108,23 @@ class LabelParser:
             profile=elem.findtext("profile"),
             data_quality=elem.findtext("data_quality"),
             urls=urls,
-            sublabels=_parse_label_refs(elem.find("sublabels")),
+            sub_labels=_parse_label_refs(elem.find("sublabels")),
             parent_label=parent_label,
         )
 
 
 def _parse_credit_artists(parent: etree._Element | None) -> list[CreditArtist]:
-    """Parse artist credits (id, name, anv, join)."""
+    """Parse artist credits (id, name, artist_name_variation, join)."""
     if parent is None:
         return []
     artists = []
     for artist_elem in parent.findall("artist"):
         artist_id = artist_elem.findtext("id")
         name = artist_elem.findtext("name")
-        anv = artist_elem.findtext("anv")
+        artist_name_variation = artist_elem.findtext("anv")
         join = artist_elem.findtext("join")
         if artist_id and name:
-            artists.append(CreditArtist(int(artist_id), name, anv, join))
+            artists.append(CreditArtist(int(artist_id), name, artist_name_variation, join))
     return artists
 
 
@@ -137,11 +137,11 @@ def _parse_extra_artists(parent: etree._Element | None) -> list[ExtraArtist]:
         artist_id_text = artist_elem.findtext("id")
         artist_id = int(artist_id_text) if artist_id_text else None
         name = artist_elem.findtext("name")
-        anv = artist_elem.findtext("anv")
+        artist_name_variation = artist_elem.findtext("anv")
         role = artist_elem.findtext("role")
         tracks = artist_elem.findtext("tracks")
         if name:
-            artists.append(ExtraArtist(artist_id, name, anv, role, tracks))
+            artists.append(ExtraArtist(artist_id, name, artist_name_variation, role, tracks))
     return artists
 
 
@@ -153,9 +153,9 @@ def _parse_release_labels(parent: etree._Element | None) -> list[ReleaseLabel]:
     for label_elem in parent.findall("label"):
         label_id = label_elem.get("id")
         name = label_elem.get("name")
-        catno = label_elem.get("catno")
+        catalog_number = label_elem.get("catno")
         if label_id and name:
-            labels.append(ReleaseLabel(int(label_id), name, catno))
+            labels.append(ReleaseLabel(int(label_id), name, catalog_number))
     return labels
 
 
@@ -166,7 +166,7 @@ def _parse_formats(parent: etree._Element | None) -> list[Format]:
     formats = []
     for format_elem in parent.findall("format"):
         name = format_elem.get("name")
-        qty_text = format_elem.get("qty")
+        quantity_text = format_elem.get("qty")
         text = format_elem.get("text")
         descriptions_elem = format_elem.find("descriptions")
         descriptions = (
@@ -174,8 +174,8 @@ def _parse_formats(parent: etree._Element | None) -> list[Format]:
             if descriptions_elem is not None
             else []
         )
-        if name and qty_text:
-            formats.append(Format(name, int(qty_text), text, descriptions))
+        if name and quantity_text:
+            formats.append(Format(name, int(quantity_text), text, descriptions))
     return formats
 
 
@@ -189,8 +189,8 @@ def _parse_sub_tracks(parent: etree._Element | None) -> list[SubTrack]:
         title = track_elem.findtext("title")
         duration = track_elem.findtext("duration")
         artists = _parse_credit_artists(track_elem.find("artists"))
-        extraartists = _parse_extra_artists(track_elem.find("extraartists"))
-        sub_tracks.append(SubTrack(position, title, duration, artists, extraartists))
+        extra_artists = _parse_extra_artists(track_elem.find("extraartists"))
+        sub_tracks.append(SubTrack(position, title, duration, artists, extra_artists))
     return sub_tracks
 
 
@@ -204,9 +204,9 @@ def _parse_tracks(parent: etree._Element | None) -> list[Track]:
         title = track_elem.findtext("title")
         duration = track_elem.findtext("duration")
         artists = _parse_credit_artists(track_elem.find("artists"))
-        extraartists = _parse_extra_artists(track_elem.find("extraartists"))
+        extra_artists = _parse_extra_artists(track_elem.find("extraartists"))
         sub_tracks = _parse_sub_tracks(track_elem.find("sub_tracks"))
-        tracks.append(Track(position, title, duration, artists, extraartists, sub_tracks))
+        tracks.append(Track(position, title, duration, artists, extra_artists, sub_tracks))
     return tracks
 
 
@@ -232,14 +232,14 @@ def _parse_companies(parent: etree._Element | None) -> list[Company]:
     for company_elem in parent.findall("company"):
         company_id = company_elem.findtext("id")
         name = company_elem.findtext("name")
-        catno = company_elem.findtext("catno")
+        catalog_number = company_elem.findtext("catno")
         entity_type_text = company_elem.findtext("entity_type")
         entity_type = int(entity_type_text) if entity_type_text else None
         entity_type_name = company_elem.findtext("entity_type_name")
         # Access resource_url to mark it as handled
         company_elem.findtext("resource_url")
         if company_id and name:
-            companies.append(Company(int(company_id), name, catno, entity_type, entity_type_name))
+            companies.append(Company(int(company_id), name, catalog_number, entity_type, entity_type_name))
     return companies
 
 
@@ -251,9 +251,9 @@ def _parse_series(parent: etree._Element | None) -> list[Series]:
     for series_elem in parent.findall("series"):
         series_id = series_elem.get("id")
         name = series_elem.get("name")
-        catno = series_elem.get("catno")
+        catalog_number = series_elem.get("catno")
         if series_id and name:
-            series_list.append(Series(int(series_id), name, catno))
+            series_list.append(Series(int(series_id), name, catalog_number))
     return series_list
 
 
@@ -343,7 +343,7 @@ class ReleaseParser:
             is_main_release=is_main_release,
             artists=_parse_credit_artists(elem.find("artists")),
             labels=_parse_release_labels(elem.find("labels")),
-            extraartists=_parse_extra_artists(elem.find("extraartists")),
+            extra_artists=_parse_extra_artists(elem.find("extraartists")),
             formats=_parse_formats(elem.find("formats")),
             genres=_parse_genres(elem.find("genres")),
             styles=_parse_styles(elem.find("styles")),

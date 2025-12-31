@@ -4,6 +4,6 @@ CREATE TABLE release_track (
     title TEXT,
     duration TEXT,
     artists TEXT,
-    extraartists TEXT,
+    extra_artists TEXT,
     sub_tracks TEXT
 );

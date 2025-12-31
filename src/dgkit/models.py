@@ -3,6 +3,7 @@ from typing import NamedTuple
 
 class ArtistRef(NamedTuple):
     """Reference to another artist (used for aliases, members, groups)."""
+
     id: int
     name: str
 
@@ -21,7 +22,8 @@ class Artist(NamedTuple):
 
 
 class LabelRef(NamedTuple):
-    """Reference to another label (used for sublabels, parent_label)."""
+    """Reference to another label (used for sub_labels, parent_label)."""
+
     id: int
     name: str
 
@@ -33,63 +35,70 @@ class Label(NamedTuple):
     profile: str | None
     data_quality: str | None
     urls: list[str] = []
-    sublabels: list[LabelRef] = []
+    sub_labels: list[LabelRef] = []
     parent_label: LabelRef | None = None
 
 
 class CreditArtist(NamedTuple):
-    """Artist credit on a release or master (id, name, anv, join)."""
+    """Artist credit on a release or master."""
+
     id: int
     name: str
-    anv: str | None
+    artist_name_variation: str | None
     join: str | None
 
 
 class ExtraArtist(NamedTuple):
     """Extra artist credit with role (producer, engineer, etc.)."""
+
     id: int | None
     name: str
-    anv: str | None
+    artist_name_variation: str | None
     role: str | None
     tracks: str | None
 
 
 class ReleaseLabel(NamedTuple):
     """Label credit on a release."""
+
     id: int
     name: str
-    catno: str | None
+    catalog_number: str | None
 
 
 class Format(NamedTuple):
     """Physical format of a release."""
+
     name: str
-    qty: int
+    quantity: int
     text: str | None
     descriptions: list[str] = []
 
 
 class SubTrack(NamedTuple):
     """Sub-track within a track (movements, sections)."""
+
     position: str | None
     title: str | None
     duration: str | None
     artists: list[CreditArtist] = []
-    extraartists: list[ExtraArtist] = []
+    extra_artists: list[ExtraArtist] = []
 
 
 class Track(NamedTuple):
     """Track on a release."""
+
     position: str | None
     title: str | None
     duration: str | None
     artists: list[CreditArtist] = []
-    extraartists: list[ExtraArtist] = []
+    extra_artists: list[ExtraArtist] = []
     sub_tracks: list[SubTrack] = []
 
 
 class Identifier(NamedTuple):
     """Identifier like barcode, matrix, etc."""
+
     type: str
     description: str | None
     value: str
@@ -97,22 +106,25 @@ class Identifier(NamedTuple):
 
 class Company(NamedTuple):
     """Company credit on a release."""
+
     id: int
     name: str
-    catno: str | None
+    catalog_number: str | None
     entity_type: int | None
     entity_type_name: str | None
 
 
 class Series(NamedTuple):
     """Series a release belongs to."""
+
     id: int
     name: str
-    catno: str | None
+    catalog_number: str | None
 
 
 class Video(NamedTuple):
     """Video associated with a master release."""
+
     src: str
     duration: int
     embed: bool
@@ -145,7 +157,7 @@ class Release(NamedTuple):
     is_main_release: bool | None
     artists: list[CreditArtist] = []
     labels: list[ReleaseLabel] = []
-    extraartists: list[ExtraArtist] = []
+    extra_artists: list[ExtraArtist] = []
     formats: list[Format] = []
     genres: list[str] = []
     styles: list[str] = []

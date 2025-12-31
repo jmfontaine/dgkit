@@ -123,7 +123,7 @@ class TestLabelParser:
         assert label.profile == "A great label."
         assert label.data_quality == "Correct"
         assert label.urls == ["https://example.com"]
-        assert label.sublabels == [LabelRef(100, "Sub Label One"), LabelRef(200, "Sub Label Two")]
+        assert label.sub_labels == [LabelRef(100, "Sub Label One"), LabelRef(200, "Sub Label Two")]
         assert label.parent_label == LabelRef(50, "Parent Label")
 
     def test_parse_label_with_empty_fields(self):
@@ -145,7 +145,7 @@ class TestLabelParser:
         assert label.profile is None
         assert label.data_quality is None
         assert label.urls == []
-        assert label.sublabels == []
+        assert label.sub_labels == []
         assert label.parent_label is None
 
 
@@ -326,7 +326,7 @@ class TestReleaseParser:
         assert release.is_main_release is True
         assert release.artists == [CreditArtist(1, "The Persuader", "", "")]
         assert release.labels == [ReleaseLabel(5, "Svek", "SK032")]
-        assert release.extraartists == [ExtraArtist(239, "Jesper Dahlbäck", "", "Written-By", "")]
+        assert release.extra_artists == [ExtraArtist(239, "Jesper Dahlbäck", "", "Written-By", "")]
         assert release.formats == [Format("Vinyl", 2, "", ['12"'])]
         assert release.genres == ["Electronic"]
         assert release.styles == ["Deep House"]
@@ -359,7 +359,7 @@ class TestReleaseParser:
         assert release.is_main_release is None
         assert release.artists == []
         assert release.labels == []
-        assert release.extraartists == []
+        assert release.extra_artists == []
         assert release.formats == []
         assert release.genres == []
         assert release.styles == []
@@ -411,5 +411,5 @@ class TestReleaseParser:
         assert track.title == "Track One"
         assert track.duration == "5:00"
         assert track.artists == [CreditArtist(100, "Track Artist", "T.A.", "")]
-        assert track.extraartists == [ExtraArtist(200, "Remixer", "", "Remix", "")]
+        assert track.extra_artists == [ExtraArtist(200, "Remixer", "", "Remix", "")]
         assert track.sub_tracks == []
