@@ -14,14 +14,14 @@ class FileFormat(str, Enum):
 
 
 class DatabaseType(str, Enum):
-    sqlite = "sqlite"
     postgresql = "postgresql"
+    sqlite = "sqlite"
 
 
 class Compression(str, Enum):
-    none = "none"
-    gzip = "gzip"
     bz2 = "bz2"
+    gzip = "gzip"
+    none = "none"
 
 
 class Parser(Protocol):

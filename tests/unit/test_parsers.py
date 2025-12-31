@@ -205,13 +205,19 @@ class TestMasterReleaseParser:
         assert master.notes is None
         assert master.data_quality == DataQuality.CORRECT
         assert master.artists == [
-            CreditArtist(1, "Artist One", "", ","),
-            CreditArtist(2, "Artist Two", "", ""),
+            CreditArtist(id=1, artist_name_variation="", join=",", name="Artist One"),
+            CreditArtist(id=2, artist_name_variation="", join="", name="Artist Two"),
         ]
         assert master.genres == ["Electronic", "Rock"]
         assert master.styles == ["Ambient", "Techno"]
         assert master.videos == [
-            Video("https://youtube.com/watch?v=abc", 300, True, "Music Video", "Official video")
+            Video(
+                description="Official video",
+                duration=300,
+                embed=True,
+                src="https://youtube.com/watch?v=abc",
+                title="Music Video",
+            )
         ]
 
     def test_parse_master_with_empty_fields(self):
@@ -328,17 +334,64 @@ class TestReleaseParser:
         assert release.data_quality == DataQuality.NEEDS_VOTE
         assert release.master_id == 1660109
         assert release.is_main_release is True
-        assert release.artists == [CreditArtist(1, "The Persuader", "", "")]
-        assert release.labels == [ReleaseLabel(5, "Svek", "SK032")]
-        assert release.extra_artists == [ExtraArtist(239, "Jesper Dahlbäck", "", "Written-By", "")]
-        assert release.formats == [Format(FormatName.VINYL, 2, "", ['12"'])]
+        assert release.artists == [
+            CreditArtist(id=1, artist_name_variation="", join="", name="The Persuader")
+        ]
+        assert release.labels == [
+            ReleaseLabel(id=5, catalog_number="SK032", name="Svek")
+        ]
+        assert release.extra_artists == [
+            ExtraArtist(
+                id=239,
+                artist_name_variation="",
+                name="Jesper Dahlbäck",
+                role="Written-By",
+                tracks="",
+            )
+        ]
+        assert release.formats == [
+            Format(name=FormatName.VINYL, quantity=2, text="", descriptions=['12"'])
+        ]
         assert release.genres == ["Electronic"]
         assert release.styles == ["Deep House"]
-        assert release.tracklist == [Track("A", "Östermalm", "4:45", [], [], [])]
-        assert release.identifiers == [Identifier(IdentifierType.MATRIX_RUNOUT, "A-side", "SK 032 A1")]
-        assert release.videos == [Video("https://youtube.com/watch?v=abc", 325, True, "Test Video", "Description")]
-        assert release.companies == [Company(271046, "The Globe Studios", "", 23, "Recorded At")]
-        assert release.series == [Series(12345, "Test Series", "Vol. 1")]
+        assert release.tracklist == [
+            Track(
+                duration="4:45",
+                position="A",
+                title="Östermalm",
+                artists=[],
+                extra_artists=[],
+                sub_tracks=[],
+            )
+        ]
+        assert release.identifiers == [
+            Identifier(
+                description="A-side",
+                type=IdentifierType.MATRIX_RUNOUT,
+                value="SK 032 A1",
+            )
+        ]
+        assert release.videos == [
+            Video(
+                description="Description",
+                duration=325,
+                embed=True,
+                src="https://youtube.com/watch?v=abc",
+                title="Test Video",
+            )
+        ]
+        assert release.companies == [
+            Company(
+                id=271046,
+                catalog_number="",
+                entity_type=23,
+                entity_type_name="Recorded At",
+                name="The Globe Studios",
+            )
+        ]
+        assert release.series == [
+            Series(id=12345, catalog_number="Vol. 1", name="Test Series")
+        ]
 
     def test_parse_release_with_empty_fields(self):
         xml = """
@@ -414,6 +467,16 @@ class TestReleaseParser:
         assert track.position == "1"
         assert track.title == "Track One"
         assert track.duration == "5:00"
-        assert track.artists == [CreditArtist(100, "Track Artist", "T.A.", "")]
-        assert track.extra_artists == [ExtraArtist(200, "Remixer", "", "Remix", "")]
+        assert track.artists == [
+            CreditArtist(id=100, artist_name_variation="T.A.", join="", name="Track Artist")
+        ]
+        assert track.extra_artists == [
+            ExtraArtist(
+                id=200,
+                artist_name_variation="",
+                name="Remixer",
+                role="Remix",
+                tracks="",
+            )
+        ]
         assert track.sub_tracks == []

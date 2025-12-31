@@ -74,15 +74,15 @@ class ArtistParser:
 
         yield Artist(
             id=int(elem.findtext("id")),
-            name=elem.findtext("name"),
-            real_name=elem.findtext("realname"),
-            profile=elem.findtext("profile"),
             data_quality=_parse_data_quality(elem),
-            urls=urls,
-            name_variations=name_variations,
+            name=elem.findtext("name"),
+            profile=elem.findtext("profile"),
+            real_name=elem.findtext("realname"),
             aliases=_parse_artist_refs(elem.find("aliases")),
-            members=_parse_artist_refs(elem.find("members")),
             groups=_parse_artist_refs(elem.find("groups")),
+            members=_parse_artist_refs(elem.find("members")),
+            name_variations=name_variations,
+            urls=urls,
         )
 
 
@@ -119,13 +119,13 @@ class LabelParser:
 
         yield Label(
             id=int(elem.get("id") or elem.findtext("id")),
-            name=elem.findtext("name") or elem.text,
             contact_info=elem.findtext("contactinfo"),
-            profile=elem.findtext("profile"),
             data_quality=_parse_data_quality(elem),
-            urls=urls,
-            sub_labels=_parse_label_refs(elem.find("sublabels")),
+            name=elem.findtext("name") or elem.text,
+            profile=elem.findtext("profile"),
             parent_label=parent_label,
+            sub_labels=_parse_label_refs(elem.find("sublabels")),
+            urls=urls,
         )
 
 
@@ -140,7 +140,14 @@ def _parse_credit_artists(parent: etree._Element | None) -> list[CreditArtist]:
         artist_name_variation = artist_elem.findtext("anv")
         join = artist_elem.findtext("join")
         if artist_id and name:
-            artists.append(CreditArtist(int(artist_id), name, artist_name_variation, join))
+            artists.append(
+                CreditArtist(
+                    id=int(artist_id),
+                    artist_name_variation=artist_name_variation,
+                    join=join,
+                    name=name,
+                )
+            )
     return artists
 
 
@@ -157,7 +164,15 @@ def _parse_extra_artists(parent: etree._Element | None) -> list[ExtraArtist]:
         role = artist_elem.findtext("role")
         tracks = artist_elem.findtext("tracks")
         if name:
-            artists.append(ExtraArtist(artist_id, name, artist_name_variation, role, tracks))
+            artists.append(
+                ExtraArtist(
+                    id=artist_id,
+                    artist_name_variation=artist_name_variation,
+                    name=name,
+                    role=role,
+                    tracks=tracks,
+                )
+            )
     return artists
 
 
@@ -171,7 +186,9 @@ def _parse_release_labels(parent: etree._Element | None) -> list[ReleaseLabel]:
         name = label_elem.get("name")
         catalog_number = label_elem.get("catno")
         if label_id and name:
-            labels.append(ReleaseLabel(int(label_id), name, catalog_number))
+            labels.append(
+                ReleaseLabel(id=int(label_id), catalog_number=catalog_number, name=name)
+            )
     return labels
 
 
@@ -191,7 +208,14 @@ def _parse_formats(parent: etree._Element | None) -> list[Format]:
             else []
         )
         if name and quantity_text:
-            formats.append(Format(FormatName(name), int(quantity_text), text, descriptions))
+            formats.append(
+                Format(
+                    name=FormatName(name),
+                    quantity=int(quantity_text),
+                    text=text,
+                    descriptions=descriptions,
+                )
+            )
     return formats
 
 
@@ -206,7 +230,15 @@ def _parse_sub_tracks(parent: etree._Element | None) -> list[SubTrack]:
         duration = track_elem.findtext("duration")
         artists = _parse_credit_artists(track_elem.find("artists"))
         extra_artists = _parse_extra_artists(track_elem.find("extraartists"))
-        sub_tracks.append(SubTrack(position, title, duration, artists, extra_artists))
+        sub_tracks.append(
+            SubTrack(
+                duration=duration,
+                position=position,
+                title=title,
+                artists=artists,
+                extra_artists=extra_artists,
+            )
+        )
     return sub_tracks
 
 
@@ -222,7 +254,16 @@ def _parse_tracks(parent: etree._Element | None) -> list[Track]:
         artists = _parse_credit_artists(track_elem.find("artists"))
         extra_artists = _parse_extra_artists(track_elem.find("extraartists"))
         sub_tracks = _parse_sub_tracks(track_elem.find("sub_tracks"))
-        tracks.append(Track(position, title, duration, artists, extra_artists, sub_tracks))
+        tracks.append(
+            Track(
+                duration=duration,
+                position=position,
+                title=title,
+                artists=artists,
+                extra_artists=extra_artists,
+                sub_tracks=sub_tracks,
+            )
+        )
     return tracks
 
 
@@ -236,7 +277,13 @@ def _parse_identifiers(parent: etree._Element | None) -> list[Identifier]:
         description = id_elem.get("description")
         value = id_elem.get("value")
         if id_type and value:
-            identifiers.append(Identifier(IdentifierType(id_type), description, value))
+            identifiers.append(
+                Identifier(
+                    description=description,
+                    type=IdentifierType(id_type),
+                    value=value,
+                )
+            )
     return identifiers
 
 
@@ -255,7 +302,15 @@ def _parse_companies(parent: etree._Element | None) -> list[Company]:
         # Access resource_url to mark it as handled
         company_elem.findtext("resource_url")
         if company_id and name:
-            companies.append(Company(int(company_id), name, catalog_number, entity_type, entity_type_name))
+            companies.append(
+                Company(
+                    id=int(company_id),
+                    catalog_number=catalog_number,
+                    entity_type=entity_type,
+                    entity_type_name=entity_type_name,
+                    name=name,
+                )
+            )
     return companies
 
 
@@ -269,7 +324,9 @@ def _parse_series(parent: etree._Element | None) -> list[Series]:
         name = series_elem.get("name")
         catalog_number = series_elem.get("catno")
         if series_id and name:
-            series_list.append(Series(int(series_id), name, catalog_number))
+            series_list.append(
+                Series(id=int(series_id), catalog_number=catalog_number, name=name)
+            )
     return series_list
 
 
@@ -285,11 +342,11 @@ def _parse_videos(parent: etree._Element | None) -> list[Video]:
         if src and duration:
             videos.append(
                 Video(
-                    src=src,
+                    description=video_elem.findtext("description"),
                     duration=int(duration),
                     embed=embed == "true",
+                    src=src,
                     title=video_elem.findtext("title"),
-                    description=video_elem.findtext("description"),
                 )
             )
     return videos
@@ -322,11 +379,11 @@ class MasterReleaseParser:
 
         yield MasterRelease(
             id=int(elem.get("id")),
-            title=elem.findtext("title"),
-            main_release=main_release,
-            year=year,
-            notes=elem.findtext("notes"),
             data_quality=_parse_data_quality(elem),
+            main_release=main_release,
+            notes=elem.findtext("notes"),
+            title=elem.findtext("title"),
+            year=year,
             artists=_parse_credit_artists(elem.find("artists")),
             genres=_parse_genres(elem.find("genres")),
             styles=_parse_styles(elem.find("styles")),
@@ -349,25 +406,25 @@ class ReleaseParser:
 
         yield Release(
             id=int(elem.get("id")),
+            country=elem.findtext("country"),
+            data_quality=_parse_data_quality(elem),
+            is_main_release=is_main_release,
+            master_id=master_id,
+            notes=elem.findtext("notes"),
+            released=elem.findtext("released"),
             status=_parse_release_status(elem),
             title=elem.findtext("title"),
-            country=elem.findtext("country"),
-            released=elem.findtext("released"),
-            notes=elem.findtext("notes"),
-            data_quality=_parse_data_quality(elem),
-            master_id=master_id,
-            is_main_release=is_main_release,
             artists=_parse_credit_artists(elem.find("artists")),
-            labels=_parse_release_labels(elem.find("labels")),
+            companies=_parse_companies(elem.find("companies")),
             extra_artists=_parse_extra_artists(elem.find("extraartists")),
             formats=_parse_formats(elem.find("formats")),
             genres=_parse_genres(elem.find("genres")),
+            identifiers=_parse_identifiers(elem.find("identifiers")),
+            labels=_parse_release_labels(elem.find("labels")),
+            series=_parse_series(elem.find("series")),
             styles=_parse_styles(elem.find("styles")),
             tracklist=_parse_tracks(elem.find("tracklist")),
-            identifiers=_parse_identifiers(elem.find("identifiers")),
             videos=_parse_videos(elem.find("videos")),
-            companies=_parse_companies(elem.find("companies")),
-            series=_parse_series(elem.find("series")),
         )
 
 

@@ -5,77 +5,77 @@ from typing import NamedTuple
 class DataQuality(StrEnum):
     """Data quality rating for Discogs records."""
 
-    NEEDS_VOTE = "Needs Vote"
-    ENTIRELY_INCORRECT = "Entirely Incorrect"
-    NEEDS_MINOR_CHANGES = "Needs Minor Changes"
-    NEEDS_MAJOR_CHANGES = "Needs Major Changes"
-    CORRECT = "Correct"
     COMPLETE_AND_CORRECT = "Complete and Correct"
+    CORRECT = "Correct"
+    ENTIRELY_INCORRECT = "Entirely Incorrect"
+    NEEDS_MAJOR_CHANGES = "Needs Major Changes"
+    NEEDS_MINOR_CHANGES = "Needs Minor Changes"
+    NEEDS_VOTE = "Needs Vote"
 
 
 class ReleaseStatus(StrEnum):
     """Status of a release submission."""
 
     ACCEPTED = "Accepted"
-    DRAFT = "Draft"
     DELETED = "Deleted"
+    DRAFT = "Draft"
     REJECTED = "Rejected"
 
 
 class IdentifierType(StrEnum):
     """Type of release identifier."""
 
+    ASIN = "ASIN"
     BARCODE = "Barcode"
-    MATRIX_RUNOUT = "Matrix / Runout"
+    DEPOSITO_LEGAL = "Depósito Legal"
     ISRC = "ISRC"
     LABEL_CODE = "Label Code"
-    RIGHTS_SOCIETY = "Rights Society"
     MASTERING_SID_CODE = "Mastering SID Code"
+    MATRIX_RUNOUT = "Matrix / Runout"
     MOULD_SID_CODE = "Mould SID Code"
-    ASIN = "ASIN"
-    DEPOSITO_LEGAL = "Depósito Legal"
-    SPARS_CODE = "SPARS Code"
     OTHER = "Other"
+    RIGHTS_SOCIETY = "Rights Society"
+    SPARS_CODE = "SPARS Code"
 
 
 class FormatName(StrEnum):
     """Physical format name of a release."""
 
-    VINYL = "Vinyl"
-    CD = "CD"
-    CDR = "CDr"
-    CASSETTE = "Cassette"
-    FILE = "File"
-    DVD = "DVD"
-    DVDR = "DVDr"
-    BOX_SET = "Box Set"
-    ALL_MEDIA = "All Media"
-    VHS = "VHS"
-    FLEXI_DISC = "Flexi-disc"
-    LATHE_CUT = "Lathe Cut"
-    MINIDISC = "Minidisc"
     ACETATE = "Acetate"
-    SACD = "SACD"
-    HYBRID = "Hybrid"
-    FLOPPY_DISK = "Floppy Disk"
-    CDV = "CDV"
-    LASERDISC = "Laserdisc"
-    SHELLAC = "Shellac"
-    DAT = "DAT"
-    EIGHT_TRACK_CARTRIDGE = "8-Track Cartridge"
-    MEMORY_STICK = "Memory Stick"
-    DCC = "DCC"
-    MVD = "MVD"
-    REEL_TO_REEL = "Reel-To-Reel"
+    ALL_MEDIA = "All Media"
     BETAMAX = "Betamax"
     BLU_RAY = "Blu-ray"
     BLU_RAY_R = "Blu-ray-R"
-    HD_DVD = "HD DVD"
-    UMD = "UMD"
-    PATHÉ_DISC = "Pathé Disc"
+    BOX_SET = "Box Set"
+    CASSETTE = "Cassette"
+    CD = "CD"
+    CDR = "CDr"
+    CDV = "CDV"
     CYLINDER = "Cylinder"
-    WIRE_RECORDING = "Wire Recording"
+    DAT = "DAT"
+    DCC = "DCC"
+    DVD = "DVD"
+    DVDR = "DVDr"
+    EIGHT_TRACK_CARTRIDGE = "8-Track Cartridge"
+    FILE = "File"
+    FLEXI_DISC = "Flexi-disc"
+    FLOPPY_DISK = "Floppy Disk"
+    HD_DVD = "HD DVD"
+    HYBRID = "Hybrid"
+    LASERDISC = "Laserdisc"
+    LATHE_CUT = "Lathe Cut"
+    MEMORY_STICK = "Memory Stick"
+    MINIDISC = "Minidisc"
+    MVD = "MVD"
+    PATHÉ_DISC = "Pathé Disc"
     PLAYBUTTON = "Playbutton"
+    REEL_TO_REEL = "Reel-To-Reel"
+    SACD = "SACD"
+    SHELLAC = "Shellac"
+    UMD = "UMD"
+    VHS = "VHS"
+    VINYL = "Vinyl"
+    WIRE_RECORDING = "Wire Recording"
 
 
 class ArtistRef(NamedTuple):
@@ -87,15 +87,15 @@ class ArtistRef(NamedTuple):
 
 class Artist(NamedTuple):
     id: int
-    name: str | None
-    real_name: str | None
-    profile: str | None
     data_quality: DataQuality | None
-    urls: list[str] = []
-    name_variations: list[str] = []
+    name: str | None
+    profile: str | None
+    real_name: str | None
     aliases: list[ArtistRef] = []
-    members: list[ArtistRef] = []
     groups: list[ArtistRef] = []
+    members: list[ArtistRef] = []
+    name_variations: list[str] = []
+    urls: list[str] = []
 
 
 class LabelRef(NamedTuple):
@@ -107,30 +107,30 @@ class LabelRef(NamedTuple):
 
 class Label(NamedTuple):
     id: int
-    name: str | None
     contact_info: str | None
-    profile: str | None
     data_quality: DataQuality | None
-    urls: list[str] = []
-    sub_labels: list[LabelRef] = []
+    name: str | None
+    profile: str | None
     parent_label: LabelRef | None = None
+    sub_labels: list[LabelRef] = []
+    urls: list[str] = []
 
 
 class CreditArtist(NamedTuple):
     """Artist credit on a release or master."""
 
     id: int
-    name: str
     artist_name_variation: str | None
     join: str | None
+    name: str
 
 
 class ExtraArtist(NamedTuple):
     """Extra artist credit with role (producer, engineer, etc.)."""
 
     id: int | None
-    name: str
     artist_name_variation: str | None
+    name: str
     role: str | None
     tracks: str | None
 
@@ -139,8 +139,8 @@ class ReleaseLabel(NamedTuple):
     """Label credit on a release."""
 
     id: int
-    name: str
     catalog_number: str | None
+    name: str
 
 
 class Format(NamedTuple):
@@ -155,9 +155,9 @@ class Format(NamedTuple):
 class SubTrack(NamedTuple):
     """Sub-track within a track (movements, sections)."""
 
+    duration: str | None
     position: str | None
     title: str | None
-    duration: str | None
     artists: list[CreditArtist] = []
     extra_artists: list[ExtraArtist] = []
 
@@ -165,9 +165,9 @@ class SubTrack(NamedTuple):
 class Track(NamedTuple):
     """Track on a release."""
 
+    duration: str | None
     position: str | None
     title: str | None
-    duration: str | None
     artists: list[CreditArtist] = []
     extra_artists: list[ExtraArtist] = []
     sub_tracks: list[SubTrack] = []
@@ -176,8 +176,8 @@ class Track(NamedTuple):
 class Identifier(NamedTuple):
     """Identifier like barcode, matrix, etc."""
 
-    type: IdentifierType
     description: str | None
+    type: IdentifierType
     value: str
 
 
@@ -185,37 +185,37 @@ class Company(NamedTuple):
     """Company credit on a release."""
 
     id: int
-    name: str
     catalog_number: str | None
     entity_type: int | None
     entity_type_name: str | None
+    name: str
 
 
 class Series(NamedTuple):
     """Series a release belongs to."""
 
     id: int
-    name: str
     catalog_number: str | None
+    name: str
 
 
 class Video(NamedTuple):
     """Video associated with a master release."""
 
-    src: str
+    description: str | None
     duration: int
     embed: bool
+    src: str
     title: str | None
-    description: str | None
 
 
 class MasterRelease(NamedTuple):
     id: int
-    title: str | None
-    main_release: int | None
-    year: int | None
-    notes: str | None
     data_quality: DataQuality | None
+    main_release: int | None
+    notes: str | None
+    title: str | None
+    year: int | None
     artists: list[CreditArtist] = []
     genres: list[str] = []
     styles: list[str] = []
@@ -224,22 +224,22 @@ class MasterRelease(NamedTuple):
 
 class Release(NamedTuple):
     id: int
+    country: str | None
+    data_quality: DataQuality | None
+    is_main_release: bool | None
+    master_id: int | None
+    notes: str | None
+    released: str | None
     status: ReleaseStatus | None
     title: str | None
-    country: str | None
-    released: str | None
-    notes: str | None
-    data_quality: DataQuality | None
-    master_id: int | None
-    is_main_release: bool | None
     artists: list[CreditArtist] = []
-    labels: list[ReleaseLabel] = []
+    companies: list[Company] = []
     extra_artists: list[ExtraArtist] = []
     formats: list[Format] = []
     genres: list[str] = []
+    identifiers: list[Identifier] = []
+    labels: list[ReleaseLabel] = []
+    series: list[Series] = []
     styles: list[str] = []
     tracklist: list[Track] = []
-    identifiers: list[Identifier] = []
     videos: list[Video] = []
-    companies: list[Company] = []
-    series: list[Series] = []

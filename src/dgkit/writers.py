@@ -571,8 +571,8 @@ FILE_WRITERS: dict[FileFormat, type[Writer]] = {
 
 
 DATABASE_WRITERS: dict[DatabaseType, type[Writer]] = {
-    DatabaseType.sqlite: SqliteWriter,
     DatabaseType.postgresql: PostgresWriter,
+    DatabaseType.sqlite: SqliteWriter,
 }
 
 
