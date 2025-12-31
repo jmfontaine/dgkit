@@ -6,26 +6,35 @@ from typing import Self
 @dataclass
 class Summary:
     elapsed_seconds: float
-    record_count: int
+    records_read: int
+    records_dropped: int
+    records_modified: int
+    records_written: int
 
     @property
     def records_per_second(self) -> float:
         if self.elapsed_seconds == 0:
             return 0
-        return self.record_count / self.elapsed_seconds
+        return self.records_read / self.elapsed_seconds
 
     def display(self) -> str:
-        return (
-            f"Processed {self.record_count:,} records "
-            f"in {self.elapsed_seconds:.2f}s "
-            f"({self.records_per_second:,.0f} records/sec)"
-        )
+        lines = [
+            f"Read:     {self.records_read:,}",
+            f"Dropped:  {self.records_dropped:,}",
+            f"Modified: {self.records_modified:,}",
+            f"Written:  {self.records_written:,}",
+            f"Time:     {self.elapsed_seconds:.2f}s ({self.records_per_second:,.0f} records/sec)",
+        ]
+        return "\n".join(lines)
 
 
 @dataclass
 class SummaryCollector:
     _start_time: float = field(default=0, init=False)
-    _record_count: int = field(default=0, init=False)
+    _records_read: int = field(default=0, init=False)
+    _records_dropped: int = field(default=0, init=False)
+    _records_modified: int = field(default=0, init=False)
+    _records_written: int = field(default=0, init=False)
 
     def __enter__(self) -> Self:
         self._start_time = time.perf_counter()
@@ -34,12 +43,24 @@ class SummaryCollector:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         pass
 
-    def count(self, n: int = 1) -> None:
-        self._record_count += n
+    def record_read(self) -> None:
+        self._records_read += 1
+
+    def record_dropped(self) -> None:
+        self._records_dropped += 1
+
+    def record_modified(self) -> None:
+        self._records_modified += 1
+
+    def record_written(self) -> None:
+        self._records_written += 1
 
     def result(self) -> Summary:
         elapsed = time.perf_counter() - self._start_time
         return Summary(
             elapsed_seconds=elapsed,
-            record_count=self._record_count,
+            records_read=self._records_read,
+            records_dropped=self._records_dropped,
+            records_modified=self._records_modified,
+            records_written=self._records_written,
         )

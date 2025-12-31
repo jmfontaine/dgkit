@@ -17,6 +17,8 @@
 - Review the database schemas and file formats to ensure that the decisions made help querying the data easy and fast. If there is a trade-off to be made between ingestion and query speed, query speed should prevail.
 - Allow selecting alternative readers that leverage other libraries and approaches that might perform better on some systems? (e.g., RapidGzip).
 - Add a progress bar.
+- Have the `--summary` option measure the number of XML elements processed to align with the `--limit` option and avoid having a limit of 1000 but see 2345 records processed in the summary which is confusing.
+
 
 ## Questions
 
@@ -37,15 +39,16 @@
 - How do we design the GitHub Actions workflows to achieve all of our goals in terms of QA and deployments?
 - Should the `load` command take a DSN string as input or options (e.g., --host --db --user --port --pwd)?
 - The parsers should not yield multiple record types. Each entity type should be a single record. It is up to the writers to split that record into multiple records if required by the destination. Splitting records up at the parser level means that writers that can handle records with nested data have to merge the records back.
-
 - Maybe the SQLite writer should not use `--dsn` but `--path`.
-
-
 - How to best provide various levels of information to the user about operations?
-- Have the `--summary` option measure the number of XML elements processed to align with the `--limit` option and avoid having a limit of 1000 but see 2345 records processed in the summary which is confusing.
+
+- How to check if the XML element has nodes or attributes we did not extract to the model? I want to make sure that the model represents the raw XML data accurately. Discogs data can be weird at times so I would like to have a way to catch unhandled edge cases. I am afraid it would hurt performance so it might have to be an option that is disabled by default. Maybe `--paranoia` or `--throrough`.
+
+- How to handle property values that are enums? For example the `dataquality` property has a small fixed number of values. Storing them as string is a waste of space.
+
 
 ### v0.1.0
-- Add PostgreSQL writer
++ Add PostgreSQL writer
 - Finalize models
 - Test UX
 - Review code

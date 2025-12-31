@@ -87,13 +87,21 @@ def execute(
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
             for record in parser.parse(elem):
+                if summary:
+                    summary.record_read()
                 if filter is not None:
-                    record = filter(record)
-                    if record is None:
+                    filtered = filter(record)
+                    if filtered is None:
+                        if summary:
+                            summary.record_dropped()
                         continue
+                    if filtered is not record:
+                        if summary:
+                            summary.record_modified()
+                    record = filtered
                 writer.write(record)
                 if summary:
-                    summary.count()
+                    summary.record_written()
             if track_bytes:
                 on_progress_bytes(reader.bytes_read)  # type: ignore[union-attr]
             if on_progress_element:
