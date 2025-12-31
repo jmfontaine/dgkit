@@ -6,6 +6,7 @@
     "getprevious",
     "lxml",
     "pycache",
+    "pyproject",
     "pytest",
     "tracklist",
     "typer",

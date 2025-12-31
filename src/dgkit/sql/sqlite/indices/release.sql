@@ -1,1 +1,1 @@
-CREATE INDEX idx_release_title ON release(title);
+CREATE INDEX idx_release_title ON "release" (title);

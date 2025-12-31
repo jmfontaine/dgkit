@@ -1,4 +1,4 @@
-CREATE TABLE release (
+CREATE TABLE "release" (
     id INTEGER PRIMARY KEY,
     status TEXT,
     title TEXT,
@@ -40,7 +40,7 @@ CREATE TABLE release_format (
     release_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     quantity INTEGER NOT NULL,
-    text TEXT,
+    "text" TEXT,
     descriptions TEXT
 );
 

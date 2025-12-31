@@ -113,8 +113,8 @@ def _load_sql(database: str, category: str, name: str) -> str | None:
     if category != "tables":
         return content
 
-    # Extract the specific CREATE TABLE statement
-    pattern = rf"CREATE TABLE {re.escape(name)}\s*\([^;]+\);"
+    # Extract the specific CREATE TABLE statement (handles quoted table names)
+    pattern = rf'CREATE TABLE "?{re.escape(name)}"?\s*\([^;]+\);'
     match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
     if match:
         return match.group(0)

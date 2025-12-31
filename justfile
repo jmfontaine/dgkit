@@ -11,6 +11,7 @@ build:
 # Format source code
 format:
     ruff format
+    pyproject-fmt
 
 # Check source code for defects
 lint *args:

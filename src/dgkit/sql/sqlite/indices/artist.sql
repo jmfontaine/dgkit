@@ -1,1 +1,1 @@
-CREATE INDEX idx_artist_name ON artist(name);
+CREATE INDEX idx_artist_name ON artist (name);
