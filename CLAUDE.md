@@ -2,6 +2,11 @@
 
 Guidelines for AI assistants working on dgkit.
 
+## Project Structure
+
+
+
+
 ## Project Philosophy
 
 ### Fail Early, Fail Hard
