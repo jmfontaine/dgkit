@@ -1,6 +1,6 @@
 # dgkit
 
-A fast and easy-to-use tool for converting, and loading data from [Discogs data dumps](https://www.discogs.com/data/) into various formats and databases.
+A fast, easy-to-use tool for converting, and loading data from [Discogs data dumps](https://www.discogs.com/data/) into various formats and databases.
 
 ## Installation
 
