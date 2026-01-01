@@ -63,10 +63,11 @@
 + Add PostgreSQL writer
 + Clean messaging on failure (no debug trace unless enabled by the user)
 + Finalize models
-- Test UX
++ Run linters
++ Test UX
 - Review code
-- Run linters
 - Update tests
+- Enable dependable.
 - Create QA pipeline
 - Create publish pipeline
 - Benchmark against alternatives
