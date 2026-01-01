@@ -14,26 +14,26 @@ from typer.testing import CliRunner
 from dgkit.cli import app
 
 runner = CliRunner()
-result = runner.invoke(app, ["--help"], prog_name="dgkit", env={"COLUMNS": "100"})
+result = runner.invoke(app, ["--help"], prog_name="dgkit", env={"COLUMNS": "80"})
 cog.out("```\n{}```".format(result.output))
 ]]] -->
 ```
-                                                                                                    
- Usage: dgkit [OPTIONS] COMMAND [ARGS]...                                                           
-                                                                                                    
- Discogs Toolkit                                                                                    
-                                                                                                    
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────╮
-│ --debug                       Show full error tracebacks.                                        │
-│ --install-completion          Install completion for the current shell.                          │
-│ --show-completion             Show completion for the current shell, to copy it or customize the │
-│                               installation.                                                      │
-│ --help                        Show this message and exit.                                        │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ───────────────────────────────────────────────────────────────────────────────────────╮
-│ convert   Convert data dumps to another format.                                                  │
-│ load      Load data dumps into a database.                                                       │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                
+ Usage: dgkit [OPTIONS] COMMAND [ARGS]...                                       
+                                                                                
+ Discogs Toolkit                                                                
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --debug                       Show full error tracebacks.                    │
+│ --install-completion          Install completion for the current shell.      │
+│ --show-completion             Show completion for the current shell, to copy │
+│                               it or customize the installation.              │
+│ --help                        Show this message and exit.                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ convert   Convert data dumps to another format.                              │
+│ load      Load data dumps into a database.                                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```
 <!-- [[[end]]] -->
@@ -42,7 +42,7 @@ cog.out("```\n{}```".format(result.output))
 
 Convert Discogs data dumps to various formats. Supports filtering records, limiting output, and optional compression.
 
-| | |
+| Option | Values |
 |-----------------|-------------------------------|
 | Output formats | `json`, `jsonl` |
 | Compression | `bz2`, `gzip`, `none` |
@@ -51,42 +51,51 @@ Convert Discogs data dumps to various formats. Supports filtering records, limit
 <summary>Full command help</summary>
 
 <!-- [[[cog
-result = runner.invoke(app, ["convert", "--help"], prog_name="dgkit", env={"COLUMNS": "100"})
+result = runner.invoke(app, ["convert", "--help"], prog_name="dgkit", env={"COLUMNS": "80"})
 cog.out("```\n{}```".format(result.output))
 ]]] -->
 ```
-                                                                                                    
- Usage: dgkit convert [OPTIONS] FILES...                                                            
-                                                                                                    
- Convert data dumps to another format.                                                              
-                                                                                                    
-╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────╮
-│ *    files      FILES...  Input files. [required]                                                │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────╮
-│ *  --format             -f                   [blackhole|console|json|  Output file format.       │
-│                                              jsonl]                    [required]                │
-│    --limit                                   INTEGER                   Max records per file.     │
-│    --output-dir         -o                   PATH                      Output directory.         │
-│                                                                        [default: .]              │
-│    --compress           -c                   [bz2|gzip|none]           Compression algorithm.    │
-│                                                                        [default: none]           │
-│    --overwrite          -w                                             Overwrite existing files. │
-│    --drop-if                                 TEXT                      Drop records matching     │
-│                                                                        field=value.              │
-│    --unset                                   TEXT                      Fields to set to null     │
-│                                                                        (comma-separated).        │
-│    --summary                --no-summary                               Show summary.             │
-│                                                                        [default: summary]        │
-│    --progress               --no-progress                              Show progress bar.        │
-│                                                                        [default: progress]       │
-│    --strict                                                            Validate XML elements for │
-│                                                                        unhandled data.           │
-│    --fail-on-unhandled                                                 Fail on unhandled XML     │
-│                                                                        data (implies --strict).  │
-│    --help                                                              Show this message and     │
-│                                                                        exit.                     │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                
+ Usage: dgkit convert [OPTIONS] FILES...                                        
+                                                                                
+ Convert data dumps to another format.                                          
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    files      FILES...  Input files. [required]                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --format       -f                   [blackhole|consol  Output file        │
+│                                        e|json|jsonl]      format.            │
+│                                                           [required]         │
+│    --limit                             INTEGER            Max records per    │
+│                                                           file.              │
+│    --output-dir   -o                   PATH               Output directory.  │
+│                                                           [default: .]       │
+│    --compress     -c                   [bz2|gzip|none]    Compression        │
+│                                                           algorithm.         │
+│                                                           [default: none]    │
+│    --overwrite    -w                                      Overwrite existing │
+│                                                           files.             │
+│    --drop-if                           TEXT               Drop records       │
+│                                                           matching           │
+│                                                           field=value.       │
+│    --unset                             TEXT               Fields to set to   │
+│                                                           null               │
+│                                                           (comma-separated). │
+│    --summary          --no-summary                        Show summary.      │
+│                                                           [default: summary] │
+│    --progress         --no-progress                       Show progress bar. │
+│                                                           [default:          │
+│                                                           progress]          │
+│    --strict                                               Validate XML       │
+│                                                           elements for       │
+│                                                           unhandled data.    │
+│    --strict-fail                                          Fail on unhandled  │
+│                                                           XML data (implies  │
+│                                                           --strict).         │
+│    --help                                                 Show this message  │
+│                                                           and exit.          │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```
 <!-- [[[end]]] -->
@@ -122,7 +131,7 @@ dgkit convert -f jsonl --unset notes,images discogs_{snapshot}_releases.xml.gz
 dgkit convert -f jsonl --strict discogs_{snapshot}_releases.xml.gz
 
 # Fail on any unhandled XML data
-dgkit convert -f jsonl --fail-on-unhandled discogs_{snapshot}_releases.xml.gz
+dgkit convert -f jsonl --strict-fail discogs_{snapshot}_releases.xml.gz
 
 # Convert multiple files
 dgkit convert -f jsonl discogs_{snapshot}_artists.xml.gz discogs_{snapshot}_labels.xml.gz discogs_{snapshot}_releases.xml.gz
@@ -151,7 +160,7 @@ dgkit convert -f jsonl --unset notes,images discogs_20260101_releases.xml.gz
 dgkit convert -f jsonl --strict discogs_20260101_releases.xml.gz
 
 # Fail on any unhandled XML data
-dgkit convert -f jsonl --fail-on-unhandled discogs_20260101_releases.xml.gz
+dgkit convert -f jsonl --strict-fail discogs_20260101_releases.xml.gz
 
 # Convert multiple files
 dgkit convert -f jsonl discogs_20260101_artists.xml.gz discogs_20260101_labels.xml.gz discogs_20260101_releases.xml.gz
@@ -174,40 +183,50 @@ Load Discogs data dumps directly into a database. Supports batched inserts, filt
 <summary>Full command help</summary>
 
 <!-- [[[cog
-result = runner.invoke(app, ["load", "--help"], prog_name="dgkit", env={"COLUMNS": "100"})
+result = runner.invoke(app, ["load", "--help"], prog_name="dgkit", env={"COLUMNS": "80"})
 cog.out("```\n{}```".format(result.output))
 ]]] -->
 ```
-                                                                                                    
- Usage: dgkit load [OPTIONS] FILES...                                                               
-                                                                                                    
- Load data dumps into a database.                                                                   
-                                                                                                    
-╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────╮
-│ *    files      FILES...  Input files. [required]                                                │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────╮
-│ *  --database           -d                   [postgresql|sqlite]  Database type. [required]      │
-│    --dsn                                     TEXT                 Database connection string.    │
-│    --limit                                   INTEGER              Max records per file.          │
-│    --batch              -b                   INTEGER              Batch size for database        │
-│                                                                   inserts.                       │
-│                                                                   [default: 10000]               │
-│    --overwrite          -w                                        Overwrite existing database.   │
-│    --drop-if                                 TEXT                 Drop records matching          │
-│                                                                   field=value.                   │
-│    --unset                                   TEXT                 Fields to set to null          │
-│                                                                   (comma-separated).             │
-│    --summary                --no-summary                          Show summary.                  │
-│                                                                   [default: summary]             │
-│    --progress               --no-progress                         Show progress bar.             │
-│                                                                   [default: progress]            │
-│    --strict                                                       Validate XML elements for      │
-│                                                                   unhandled data.                │
-│    --fail-on-unhandled                                            Fail on unhandled XML data     │
-│                                                                   (implies --strict).            │
-│    --help                                                         Show this message and exit.    │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                
+ Usage: dgkit load [OPTIONS] FILES...                                           
+                                                                                
+ Load data dumps into a database.                                               
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    files      FILES...  Input files. [required]                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --database     -d                   [postgresql|sqlit  Database type.     │
+│                                        e]                 [required]         │
+│    --dsn                               TEXT               Database           │
+│                                                           connection string. │
+│    --limit                             INTEGER            Max records per    │
+│                                                           file.              │
+│    --batch        -b                   INTEGER            Batch size for     │
+│                                                           database inserts.  │
+│                                                           [default: 10000]   │
+│    --overwrite    -w                                      Overwrite existing │
+│                                                           database.          │
+│    --drop-if                           TEXT               Drop records       │
+│                                                           matching           │
+│                                                           field=value.       │
+│    --unset                             TEXT               Fields to set to   │
+│                                                           null               │
+│                                                           (comma-separated). │
+│    --summary          --no-summary                        Show summary.      │
+│                                                           [default: summary] │
+│    --progress         --no-progress                       Show progress bar. │
+│                                                           [default:          │
+│                                                           progress]          │
+│    --strict                                               Validate XML       │
+│                                                           elements for       │
+│                                                           unhandled data.    │
+│    --strict-fail                                          Fail on unhandled  │
+│                                                           XML data (implies  │
+│                                                           --strict).         │
+│    --help                                                 Show this message  │
+│                                                           and exit.          │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```
 <!-- [[[end]]] -->
@@ -252,7 +271,7 @@ dgkit load -d sqlite --unset notes,images discogs_{snapshot}_releases.xml.gz
 dgkit load -d sqlite --strict discogs_{snapshot}_releases.xml.gz
 
 # Fail on any unhandled XML data
-dgkit load -d sqlite --fail-on-unhandled discogs_{snapshot}_releases.xml.gz
+dgkit load -d sqlite --strict-fail discogs_{snapshot}_releases.xml.gz
 ```""")
 ]]] -->
 ```shell
@@ -290,7 +309,7 @@ dgkit load -d sqlite --unset notes,images discogs_20260101_releases.xml.gz
 dgkit load -d sqlite --strict discogs_20260101_releases.xml.gz
 
 # Fail on any unhandled XML data
-dgkit load -d sqlite --fail-on-unhandled discogs_20260101_releases.xml.gz
+dgkit load -d sqlite --strict-fail discogs_20260101_releases.xml.gz
 ```
 <!-- [[[end]]] -->
 

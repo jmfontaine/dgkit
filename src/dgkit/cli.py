@@ -108,15 +108,15 @@ def convert_cmd(
     strict: Annotated[
         bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
     ] = False,
-    fail_on_unhandled: Annotated[
+    strict_fail: Annotated[
         bool,
         typer.Option(
-            "--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict)."
+            "--strict-fail", help="Fail on unhandled XML data (implies --strict)."
         ),
     ] = False,
 ):
-    # --fail-on-unhandled implies --strict
-    if fail_on_unhandled:
+    # --strict-fail implies --strict
+    if strict_fail:
         strict = True
 
     # Check for existing output files (only for file-based formats)
@@ -139,7 +139,7 @@ def convert_cmd(
         format,
         files,
         compression=compress,
-        fail_on_unhandled=fail_on_unhandled,
+        fail_on_unhandled=strict_fail,
         filters=filters,
         limit=limit,
         output_dir=output_dir,
@@ -184,15 +184,15 @@ def load_cmd(
     strict: Annotated[
         bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
     ] = False,
-    fail_on_unhandled: Annotated[
+    strict_fail: Annotated[
         bool,
         typer.Option(
-            "--fail-on-unhandled", help="Fail on unhandled XML data (implies --strict)."
+            "--strict-fail", help="Fail on unhandled XML data (implies --strict)."
         ),
     ] = False,
 ):
-    # --fail-on-unhandled implies --strict
-    if fail_on_unhandled:
+    # --strict-fail implies --strict
+    if strict_fail:
         strict = True
 
     valid_files = [f for f in files if f.is_file()]
@@ -216,7 +216,7 @@ def load_cmd(
         files,
         batch_size=batch,
         dsn=dsn,
-        fail_on_unhandled=fail_on_unhandled,
+        fail_on_unhandled=strict_fail,
         filters=filters,
         limit=limit,
         show_progress=progress,
