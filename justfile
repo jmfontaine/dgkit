@@ -45,7 +45,7 @@ test *args:
 setup:
     uv sync                  # Install dependencies
     pre-commit install       # Set up pre-commit git hooks
-    echo "Run 'source .venv/bin/activate' to activate the venv"
+    echo "Activate with 'source .venv/bin/activate' or use 'uv run' to run commands"
 
 # Type check source code
 typecheck:
