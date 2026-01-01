@@ -27,6 +27,7 @@ scripts.dgkit = "dgkit.cli:app"
 
 [dependency-groups]
 dev = [
+  "cogapp>=3.4.1",
   "lxml-stubs>=0.5.1",
   "pre-commit>=4.5.1",
   "pyproject-fmt>=2.11.1",

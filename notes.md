@@ -55,6 +55,10 @@
 - How could we resume stopped imports?
 
 
+- Test UX and document usage
+- Review code and document architecture and design decisions in CLAUDE.md
+
+
 ### v0.1.0 - Foundations
 + Add PostgreSQL writer
 + Clean messaging on failure (no debug trace unless enabled by the user)
@@ -74,8 +78,13 @@
 
 ### v0.3.0 - Additional Features
 - Add `query` command to run a query against a converted file format or exported database
+- Implement and document auto-completion.
+- Test Python versions compatibility.
+- Test PostgreSQL versions compatibility.
 
 ### v0.4.0 - Optimized Deployment
 - Release package variant with unusual dependencies
 
 ### v0.5.0 - UX Improvements
+
+- Implement best practices from https://clig.dev/ and https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46

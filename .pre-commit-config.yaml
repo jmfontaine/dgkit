@@ -9,3 +9,11 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: cog-check
+        name: cog --check
+        entry: uv run cog --check README.md
+        language: system
+        files: ^(README\.md|src/dgkit/cli\.py)$
+        pass_filenames: false

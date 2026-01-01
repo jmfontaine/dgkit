@@ -51,7 +51,11 @@ def _exception_handler(exc_type, exc_value, exc_traceback):
         raise SystemExit(1)
 
 
-app = typer.Typer(help="Discogs Toolkit")
+app = typer.Typer(
+    help="Discogs Toolkit",
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
 
 
 @app.callback()
