@@ -96,7 +96,22 @@ def execute(
             tracking_elem = TrackingElement(elem) if strict else None
             parse_elem = cast(Element, tracking_elem if tracking_elem else elem)
 
-            for record in parser.parse(parse_elem):
+            try:
+                records = list(parser.parse(parse_elem))
+            except ValueError as e:
+                if fail_on_unhandled:
+                    raise
+                element_id = elem.findtext("id") or elem.get("id") or "?"
+                message = f"Parse error in {parser.tag} id={element_id}: {e}"
+                if summary:
+                    summary.record_unhandled(message)
+                if trackable is not None and on_progress_bytes is not None:
+                    on_progress_bytes(trackable.bytes_read)
+                if on_progress_element:
+                    on_progress_element()
+                continue
+
+            for record in records:
                 if summary:
                     summary.record_read()
                 if filter is not None:

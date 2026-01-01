@@ -53,10 +53,12 @@
 - Should we offer an option to normalize the data in the file writers to avoid bloating them with duplicated data?
 - In the database writers, create views for entity types that are not explicitly defined but whose data is spread over other entities (e.g., series whose data is available in releases).
 - How could we resume stopped imports?
+- Create a Discogs stats report over time.
 
 
 - Test UX and document usage
 - Review code and document architecture and design decisions in CLAUDE.md
+- Test dgkit with all 2025 dumps, and possibly dumps from previous years.
 
 
 ### v0.1.0 - Foundations
@@ -72,10 +74,12 @@
 - Create publish pipeline
 - Benchmark against alternatives
 - Create CLAUDE.md file
+- Add a nice screenshot to the top of the READE file (see https://github.com/chaosprint/hindsight).
 - Package release
 
 ### v0.2.0 - Performance Tuning
 - Optimize imports for optional features
+- Look into multi-processing
 
 ### v0.3.0 - Additional Features
 - Add `query` command to run a query against a converted file format or exported database
