@@ -20,6 +20,13 @@ class Element(Protocol):
     def findall(self, tag: str) -> list["Element"]: ...
 
 
+class EntityType(str, Enum):
+    artists = "artists"
+    labels = "labels"
+    masters = "masters"
+    releases = "releases"
+
+
 class FileFormat(str, Enum):
     blackhole = "blackhole"
     console = "console"

@@ -74,6 +74,8 @@ cog.out("```text\n{}```".format(result.output))
 │                                                               [default: none]        │
 │    --overwrite    -w                                          Overwrite existing     │
 │                                                               files.                 │
+│    --type         -t                   [artists|labels|maste  Entity type (if not    │
+│                                        rs|releases]           auto-detected).        │
 │    --drop-if                           TEXT                   Drop records matching  │
 │                                                               field=value.           │
 │    --unset                             TEXT                   Fields to set to null  │
@@ -132,6 +134,12 @@ dgkit convert -f jsonl discogs_{snapshot}_artists.xml.gz discogs_{snapshot}_labe
 
 # Convert all XML files using a wildcard
 dgkit convert -f jsonl discogs_{snapshot}_*.xml.gz
+
+# Convert a file with non-standard name (explicit type)
+dgkit convert -f jsonl --type releases my-releases.xml.gz
+
+# Convert a sample file (type auto-detected from filename)
+dgkit convert -f jsonl discogs_{snapshot}_releases_sample_1000000.xml.gz
 ```""")
 ]]] -->
 ```shell
@@ -161,6 +169,12 @@ dgkit convert -f jsonl discogs_20260101_artists.xml.gz discogs_20260101_labels.x
 
 # Convert all XML files using a wildcard
 dgkit convert -f jsonl discogs_20260101_*.xml.gz
+
+# Convert a file with non-standard name (explicit type)
+dgkit convert -f jsonl --type releases my-releases.xml.gz
+
+# Convert a sample file (type auto-detected from filename)
+dgkit convert -f jsonl discogs_20260101_releases_sample_1000000.xml.gz
 ```
 <!-- [[[end]]] -->
 
@@ -190,30 +204,33 @@ cog.out("```text\n{}```".format(result.output))
 │ *    files      FILES...  Discogs dump files. [required]                             │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
-│ *  --database     -d                   [postgresql|sqlite]  Database type.           │
-│                                                             [required]               │
-│    --dsn                               TEXT                 Database connection      │
-│                                                             string.                  │
-│    --limit                             INTEGER              Max records per file.    │
-│    --batch        -b                   INTEGER              Batch size for database  │
-│                                                             inserts.                 │
-│                                                             [default: 10000]         │
-│    --overwrite    -w                                        Overwrite existing       │
-│                                                             database.                │
-│    --drop-if                           TEXT                 Drop records matching    │
-│                                                             field=value.             │
-│    --unset                             TEXT                 Fields to set to null    │
-│                                                             (comma-separated).       │
-│    --summary          --no-summary                          Show summary.            │
-│                                                             [default: summary]       │
-│    --progress         --no-progress                         Show progress bar.       │
-│                                                             [default: progress]      │
-│    --strict                                                 Warn about unhandled XML │
-│                                                             elements.                │
-│    --strict-fail                                            Fail on unhandled XML    │
-│                                                             data (implies --strict). │
-│    --help                                                   Show this message and    │
-│                                                             exit.                    │
+│ *  --database     -d                   [postgresql|sqlite]    Database type.         │
+│                                                               [required]             │
+│    --dsn                               TEXT                   Database connection    │
+│                                                               string.                │
+│    --limit                             INTEGER                Max records per file.  │
+│    --batch        -b                   INTEGER                Batch size for         │
+│                                                               database inserts.      │
+│                                                               [default: 10000]       │
+│    --overwrite    -w                                          Overwrite existing     │
+│                                                               database.              │
+│    --type         -t                   [artists|labels|maste  Entity type (if not    │
+│                                        rs|releases]           auto-detected).        │
+│    --drop-if                           TEXT                   Drop records matching  │
+│                                                               field=value.           │
+│    --unset                             TEXT                   Fields to set to null  │
+│                                                               (comma-separated).     │
+│    --summary          --no-summary                            Show summary.          │
+│                                                               [default: summary]     │
+│    --progress         --no-progress                           Show progress bar.     │
+│                                                               [default: progress]    │
+│    --strict                                                   Warn about unhandled   │
+│                                                               XML elements.          │
+│    --strict-fail                                              Fail on unhandled XML  │
+│                                                               data (implies          │
+│                                                               --strict).             │
+│    --help                                                     Show this message and  │
+│                                                               exit.                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
 ```
@@ -260,6 +277,12 @@ dgkit load -d sqlite --strict discogs_{snapshot}_releases.xml.gz
 
 # Fail on any unhandled XML data
 dgkit load -d sqlite --strict-fail discogs_{snapshot}_releases.xml.gz
+
+# Load a file with non-standard name (explicit type)
+dgkit load -d sqlite --type releases my-releases.xml.gz
+
+# Load a sample file (type auto-detected from filename)
+dgkit load -d sqlite discogs_{snapshot}_releases_sample_1000000.xml.gz
 ```""")
 ]]] -->
 ```shell
@@ -298,6 +321,12 @@ dgkit load -d sqlite --strict discogs_20260101_releases.xml.gz
 
 # Fail on any unhandled XML data
 dgkit load -d sqlite --strict-fail discogs_20260101_releases.xml.gz
+
+# Load a file with non-standard name (explicit type)
+dgkit load -d sqlite --type releases my-releases.xml.gz
+
+# Load a sample file (type auto-detected from filename)
+dgkit load -d sqlite discogs_20260101_releases_sample_1000000.xml.gz
 ```
 <!-- [[[end]]] -->
 

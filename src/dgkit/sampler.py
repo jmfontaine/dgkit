@@ -10,7 +10,10 @@ from lxml import etree
 from dgkit.readers import GzipReader
 
 
-FILENAME_PATTERN = re.compile(r"discogs_\d{8}_(\w+)\.xml\.gz")
+# Matches: discogs_YYYYMMDD_<entity>.xml.gz or discogs_YYYYMMDD_<entity>_sample_N.xml.gz
+FILENAME_PATTERN = re.compile(
+    r"discogs_\d{8}_(artists|labels|masters|releases)(?:_sample_\d+)?\.xml\.gz"
+)
 
 # Maps entity name (from filename) to XML element tag
 ENTITY_TAGS: dict[str, str] = {

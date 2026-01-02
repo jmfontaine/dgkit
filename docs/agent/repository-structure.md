@@ -20,6 +20,7 @@
 │       ├── parsers.py                    # XML element to model conversion
 │       ├── pipeline.py                   # Orchestrates read -> parse -> filter -> write
 │       ├── readers.py                    # Gzip file readers with progress tracking
+│       ├── sampler.py                    # Extract samples from XML dumps
 │       ├── sql                           # SQL schemas for database writers
 │       │   ├── postgresql
 │       │   │   ├── indices               # PostgreSQL index definitions

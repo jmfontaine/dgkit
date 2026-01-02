@@ -18,7 +18,7 @@ from dgkit.pipeline import (
 )
 from dgkit.sampler import build_sample_path, sample
 from dgkit.summary import Summary, _format_duration
-from dgkit.types import Compression, DatabaseType, FileFormat
+from dgkit.types import Compression, DatabaseType, EntityType, FileFormat
 
 # Global debug flag
 _debug = False
@@ -100,6 +100,15 @@ def convert_cmd(
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing files.")
     ] = False,
+    entity_type: Annotated[
+        EntityType | None,
+        typer.Option(
+            "--type",
+            "-t",
+            case_sensitive=False,
+            help="Entity type (if not auto-detected).",
+        ),
+    ] = None,
     drop_if: Annotated[
         list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
     ] = [],
@@ -144,6 +153,7 @@ def convert_cmd(
     filters = build_filters(drop_if, unset)
     result = convert(
         compression=compress,
+        entity_type=entity_type.value if entity_type else None,
         fail_on_unhandled=strict_fail,
         filters=filters,
         format=format,
@@ -175,6 +185,15 @@ def load_cmd(
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing database.")
     ] = False,
+    entity_type: Annotated[
+        EntityType | None,
+        typer.Option(
+            "--type",
+            "-t",
+            case_sensitive=False,
+            help="Entity type (if not auto-detected).",
+        ),
+    ] = None,
     drop_if: Annotated[
         list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
     ] = [],
@@ -223,6 +242,7 @@ def load_cmd(
         files,
         batch_size=batch,
         dsn=dsn,
+        entity_type=entity_type.value if entity_type else None,
         fail_on_unhandled=strict_fail,
         filters=filters,
         limit=limit,
