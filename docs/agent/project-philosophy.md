@@ -30,11 +30,4 @@
 ## YAGNI (You Aren't Gonna Need It)
 
 - Do not add features speculatively.
-
-Examples of rejected features:
-
-- Logging infrastructure (current feedback mechanisms suffice)
-- Auto-discovery of input files (shell globs work fine)
-- Country enum (300+ values, dropdown-constrained, low risk of bad data)
-
-Add complexity only when there's a demonstrated need.
+- Add complexity only when there's a demonstrated need.
