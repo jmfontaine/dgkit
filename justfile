@@ -16,9 +16,23 @@ check:
 clean:
     rm -rf dist/ .coverage .pytest_cache/ .ruff_cache/
 
+# Check for outdated dependencies
+deps-outdated:
+    uv sync --upgrade --dry-run
+
+# Upgrade dependencies to latest versions
+deps-upgrade:
+    uv sync --upgrade
+
 # Regenerate README with cog
 docs:
     cog -r README.md
+
+# Fix fixable source code defects
+fix:
+    cog -r README.md            # Regenerate README.md
+    ruff check --fix            # Python files
+    sqlfluff fix src/dgkit/sql  # SQL files
 
 # Format source code
 format:
@@ -26,11 +40,9 @@ format:
     pyproject-fmt pyproject.toml             # pyproject.toml
     npx markdownlint-cli2 --fix "**/*.md"    # Markdown files
 
-# Fix fixable source code defects
-fix:
-    cog -r README.md            # Regenerate README.md
-    ruff check --fix            # Python files
-    sqlfluff fix src/dgkit/sql  # SQL files
+# Update pre-commit hooks
+hooks-update:
+    pre-commit autoupdate --freeze --jobs 4
 
 # Check source code for defects
 lint:
@@ -41,20 +53,16 @@ lint:
     sqlfluff lint src/dgkit/sql           # SQL files linting
     npx markdownlint-cli2 "**/*.md"       # Markdown files linting
 
-# Run tests (optional: path or pytest args)
-test *args:
-    pytest --cov {{ args }}
-
 # Set up development environment
 setup:
     uv sync                  # Install dependencies
     pre-commit install       # Set up pre-commit git hooks
     echo "Activate with 'source .venv/bin/activate' or use 'uv run' to run commands"
 
+# Run tests (optional: path or pytest args)
+test *args:
+    pytest --cov {{ args }}
+
 # Type check source code
 typecheck:
     ty check
-
-# Update pre-commit hooks
-update:
-    pre-commit autoupdate

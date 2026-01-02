@@ -4,15 +4,16 @@
 
 Prefer alphabetical ordering for:
 
-- Enum members
 - Class attributes/properties
+- CLI options and arguments
+- Database tables
+- Dictionary keys
+- Enum members
 - Function/method definitions within a class
 - Import statements
-- Dictionary keys
-- CLI arguments (where possible)
+- just recipes
 - Keyword arguments in function/method calls
 - Keyword arguments in class instantiations
-- Database tables
 
 Exceptions:
 
@@ -27,6 +28,10 @@ Use descriptive names in models, even if XML uses abbreviations:
 - `catalog_number` not `catno`
 - `quantity` not `qty`
 - `artist_name_variation` not `anv`
+
+## CLI Options
+
+Prefer long-form options (`--format`) over short-form (`-f`) in documentation and examples for clarity.
 
 ## Avoid Type Ignores
 

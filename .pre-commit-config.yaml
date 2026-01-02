@@ -1,19 +1,28 @@
 repos:
-  - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: "v2.11.1"
-    hooks:
-      - id: pyproject-fmt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.10
+    rev: 5ba58aca0bd5bc7c0e1c0fc45af2e88d6a2bde83 # frozen: v0.14.10
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+  - repo: https://github.com/crate-ci/typos
+    rev: b31d3aa6e8e43e6a9cf7a1d137baf189dec0922b # frozen: v1
+    hooks:
+      - id: typos
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.20.0
+    rev: 7339935a3036f096ee0d7f1f047a9ec41707d4c1 # frozen: v0.20.0
     hooks:
       - id: markdownlint-cli2
         args: [--fix]
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: ef33b2d7a105065b31aedaec9a74ed6f5cb6877b # frozen: 4.0.0a2
+    hooks:
+      - id: sqlfluff-lint
+        files: ^src/dgkit/sql/
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: d252a2a7678b47d1f2eea2f6b846ddfdcd012759 # frozen: v2.11.1
+    hooks:
+      - id: pyproject-fmt
   - repo: local
     hooks:
       - id: cog-check
@@ -21,4 +30,10 @@ repos:
         entry: uv run cog --check README.md
         language: system
         files: ^(README\.md|src/dgkit/cli\.py)$
+        pass_filenames: false
+      - id: ty-check
+        name: ty check
+        entry: ty check
+        language: system
+        types: [python]
         pass_filenames: false
