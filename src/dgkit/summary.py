@@ -1,4 +1,6 @@
 import time
+import types
+
 from dataclasses import dataclass, field
 from typing import Self
 
@@ -62,7 +64,12 @@ class SummaryCollector:
         self._start_time = time.perf_counter()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         pass
 
     def record_read(self) -> None:

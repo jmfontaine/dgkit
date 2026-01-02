@@ -17,7 +17,7 @@ class GzipReader:
 class TrackingGzipReader:
     """Gzip reader that tracks compressed bytes read for progress reporting."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._fileobj: IO[bytes] | None = None
         self._total_size: int = 0
 

@@ -21,7 +21,7 @@ cog.out("```text\n{}```".format(result.output))
                                                                                         
  Usage: dgkit [OPTIONS] COMMAND [ARGS]...                                               
                                                                                         
- Discogs Toolkit                                                                        
+ Process Discogs data dumps.                                                            
                                                                                         
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
 │ --debug                       Show full error tracebacks.                            │
@@ -61,7 +61,7 @@ cog.out("```text\n{}```".format(result.output))
  Convert data dumps to another format.                                                  
                                                                                         
 ╭─ Arguments ──────────────────────────────────────────────────────────────────────────╮
-│ *    files      FILES...  Input files. [required]                                    │
+│ *    files      FILES...  Discogs dump files. [required]                             │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
 │ *  --format       -f                   [blackhole|console|js  Output file format.    │
@@ -81,8 +81,8 @@ cog.out("```text\n{}```".format(result.output))
 │                                                               [default: summary]     │
 │    --progress         --no-progress                           Show progress bar.     │
 │                                                               [default: progress]    │
-│    --strict                                                   Validate XML elements  │
-│                                                               for unhandled data.    │
+│    --strict                                                   Warn about unhandled   │
+│                                                               XML elements.          │
 │    --strict-fail                                              Fail on unhandled XML  │
 │                                                               data (implies          │
 │                                                               --strict).             │
@@ -186,7 +186,7 @@ cog.out("```text\n{}```".format(result.output))
  Load data dumps into a database.                                                       
                                                                                         
 ╭─ Arguments ──────────────────────────────────────────────────────────────────────────╮
-│ *    files      FILES...  Input files. [required]                                    │
+│ *    files      FILES...  Discogs dump files. [required]                             │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
 │ *  --database     -d                   [postgresql|sqlite]  Database type.           │
@@ -207,8 +207,8 @@ cog.out("```text\n{}```".format(result.output))
 │                                                             [default: summary]       │
 │    --progress         --no-progress                         Show progress bar.       │
 │                                                             [default: progress]      │
-│    --strict                                                 Validate XML elements    │
-│                                                             for unhandled data.      │
+│    --strict                                                 Warn about unhandled XML │
+│                                                             elements.                │
 │    --strict-fail                                            Fail on unhandled XML    │
 │                                                             data (implies --strict). │
 │    --help                                                   Show this message and    │

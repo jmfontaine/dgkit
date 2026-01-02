@@ -3,6 +3,8 @@ import gzip
 import json
 import re
 import sqlite3
+import types
+
 from importlib.resources import files
 from pathlib import Path
 from typing import (
@@ -158,13 +160,18 @@ class BlackholeWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         pass
 
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         pass
 
     def write(self, record: NamedTuple) -> None:
@@ -176,13 +183,18 @@ class ConsoleWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         pass
 
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         pass
 
     def write(self, record: NamedTuple) -> None:
@@ -196,7 +208,7 @@ class JsonWriter:
 
     aggregates_inputs = False
 
-    def __init__(self, path: Path, compression: Compression = Compression.none):
+    def __init__(self, path: Path, compression: Compression = Compression.none) -> None:
         self.path = path
         self.compression = compression
         self._fp: IO | None = None
@@ -208,7 +220,12 @@ class JsonWriter:
         self._first = True
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         if self._fp:
             self._fp.write("\n]\n")
             self._fp.close()
@@ -226,7 +243,7 @@ class JsonlWriter:
 
     aggregates_inputs = False
 
-    def __init__(self, path: Path, compression: Compression = Compression.none):
+    def __init__(self, path: Path, compression: Compression = Compression.none) -> None:
         self.path = path
         self.compression = compression
         self._fp: IO | None = None
@@ -235,7 +252,12 @@ class JsonlWriter:
         self._fp = open_compressed(self.path, "wt", self.compression)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         if self._fp:
             self._fp.close()
 
@@ -258,7 +280,7 @@ class SqliteWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any):
+    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any) -> None:
         self.dsn = dsn
         self.path = parse_sqlite_dsn(dsn)
         self.batch_size = batch_size
@@ -278,7 +300,12 @@ class SqliteWriter:
         self._conn.execute("PRAGMA cache_size = -64000")
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         if self._conn:
             self._flush_all()
             if not exc_type:
@@ -453,7 +480,7 @@ class PostgresWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any):
+    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any) -> None:
         self.dsn = dsn
         self.batch_size = batch_size
         self._conn: "psycopg.Connection | None" = None
@@ -469,7 +496,12 @@ class PostgresWriter:
         self._conn = psycopg.connect(self.dsn)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         if self._conn:
             self._flush_all()
             if not exc_type:

@@ -1,3 +1,5 @@
+import types
+
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
@@ -68,5 +70,10 @@ class Writer(Protocol):
     aggregates_inputs: bool
 
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None: ...
     def write(self, record: NamedTuple) -> None: ...

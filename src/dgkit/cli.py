@@ -1,4 +1,5 @@
 import sys
+import types
 from pathlib import Path
 from typing import Annotated
 
@@ -18,17 +19,17 @@ from dgkit.types import Compression, DatabaseType, FileFormat
 
 # Global debug flag
 _debug = False
-console = Console()
+_console = Console()
 
 
 def display_result(result: Summary) -> None:
     """Display processing result with Rich formatting."""
     if result.warnings:
         warnings_text = "\n".join(result.warnings)
-        console.print(
+        _console.print(
             Panel(warnings_text, title="Unhandled Data", border_style="yellow")
         )
-    console.print(Panel(result.display(), title="Summary", border_style="green"))
+    _console.print(Panel(result.display(), title="Summary", border_style="green"))
 
 
 def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
@@ -42,7 +43,11 @@ def build_filters(drop_if: list[str], unset: list[str]) -> list[Filter]:
     return filters
 
 
-def _exception_handler(exc_type, exc_value, exc_traceback):
+def _exception_handler(
+    exc_type: type[BaseException] | None,
+    exc_value: BaseException | None,
+    exc_traceback: types.TracebackType | None,
+) -> None:
     """Handle exceptions with clean output unless debug mode is enabled."""
     if _debug:
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -52,7 +57,7 @@ def _exception_handler(exc_type, exc_value, exc_traceback):
 
 
 app = typer.Typer(
-    help="Discogs Toolkit",
+    help="Process Discogs data dumps.",
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
@@ -63,8 +68,8 @@ def main(
     debug: Annotated[
         bool, typer.Option("--debug", help="Show full error tracebacks.")
     ] = False,
-):
-    """Discogs Toolkit - Process Discogs data dumps."""
+) -> None:
+    """Configure global options."""
     global _debug
     _debug = debug
     sys.excepthook = _exception_handler
@@ -72,7 +77,7 @@ def main(
 
 @app.command(name="convert", help="Convert data dumps to another format.")
 def convert_cmd(
-    files: Annotated[list[Path], typer.Argument(help="Input files.")],
+    files: Annotated[list[Path], typer.Argument(help="Discogs dump files.")],
     format: Annotated[
         FileFormat,
         typer.Option(
@@ -106,7 +111,7 @@ def convert_cmd(
         bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
     ] = True,
     strict: Annotated[
-        bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
+        bool, typer.Option("--strict", help="Warn about unhandled XML elements.")
     ] = False,
     strict_fail: Annotated[
         bool,
@@ -114,7 +119,7 @@ def convert_cmd(
             "--strict-fail", help="Fail on unhandled XML data (implies --strict)."
         ),
     ] = False,
-):
+) -> None:
     # --strict-fail implies --strict
     if strict_fail:
         strict = True
@@ -153,7 +158,7 @@ def convert_cmd(
 
 @app.command(name="load", help="Load data dumps into a database.")
 def load_cmd(
-    files: Annotated[list[Path], typer.Argument(help="Input files.")],
+    files: Annotated[list[Path], typer.Argument(help="Discogs dump files.")],
     database: Annotated[
         DatabaseType,
         typer.Option("--database", "-d", case_sensitive=False, help="Database type."),
@@ -182,7 +187,7 @@ def load_cmd(
         bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
     ] = True,
     strict: Annotated[
-        bool, typer.Option("--strict", help="Validate XML elements for unhandled data.")
+        bool, typer.Option("--strict", help="Warn about unhandled XML elements.")
     ] = False,
     strict_fail: Annotated[
         bool,
@@ -190,7 +195,7 @@ def load_cmd(
             "--strict-fail", help="Fail on unhandled XML data (implies --strict)."
         ),
     ] = False,
-):
+) -> None:
     # --strict-fail implies --strict
     if strict_fail:
         strict = True

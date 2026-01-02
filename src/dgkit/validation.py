@@ -1,5 +1,7 @@
 """XML element validation for detecting unhandled data."""
 
+from typing import Iterator
+
 from lxml import etree
 
 
@@ -10,7 +12,7 @@ class TrackingElement:
     ensuring parsers extract all available data.
     """
 
-    def __init__(self, elem: etree._Element, path: str = ""):
+    def __init__(self, elem: etree._Element, path: str = "") -> None:
         self._elem = elem
         self._path = path
         self._accessed_tags: set[str] = set()
@@ -88,7 +90,7 @@ class TrackingElement:
 
         return unaccessed
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["TrackingElement"]:
         """Iterate over child elements (wrapped)."""
         for child in self._elem:
             tag = child.tag
@@ -103,7 +105,7 @@ class TrackingElement:
 class UnhandledElementError(Exception):
     """Raised when unhandled elements are detected in strict mode."""
 
-    def __init__(self, element_id: str, tag: str, unaccessed: set[str]):
+    def __init__(self, element_id: str, tag: str, unaccessed: set[str]) -> None:
         self.element_id = element_id
         self.tag = tag
         self.unaccessed = unaccessed

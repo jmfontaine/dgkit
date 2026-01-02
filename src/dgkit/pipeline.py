@@ -85,7 +85,7 @@ def execute(
     on_progress_element: Callable[[], None] | None = None,
     strict: bool = False,
     summary: SummaryCollector | None = None,
-):
+) -> None:
     """Execute the pipeline."""
     trackable: TrackableReader | None = (
         cast(TrackableReader, reader) if is_trackable(reader) else None
@@ -184,7 +184,7 @@ class ProgressTracker:
         limit: int | None,
         show_progress: bool,
         valid_paths: list[Path],
-    ):
+    ) -> None:
         self._use_elements = limit is not None
         self._show_progress = show_progress
         self._bytes_completed = 0

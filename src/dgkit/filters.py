@@ -159,7 +159,7 @@ def _evaluate(parsed: Any, record: NamedTuple) -> bool:
 class ExpressionFilter:
     """Filter records using a parsed expression."""
 
-    def __init__(self, expression: str):
+    def __init__(self, expression: str) -> None:
         self.expression = expression
         self._parsed = _PARSER.parse_string(expression, parse_all=True)
 
@@ -172,7 +172,7 @@ class ExpressionFilter:
 class UnsetFields:
     """Set specified fields to None."""
 
-    def __init__(self, fields: list[str]):
+    def __init__(self, fields: list[str]) -> None:
         self.fields = set(fields)
 
     def __call__(self, record: NamedTuple) -> NamedTuple | None:
@@ -185,7 +185,7 @@ class UnsetFields:
 class FilterChain:
     """Compose multiple filters into a single filter."""
 
-    def __init__(self, filters: list[Filter]):
+    def __init__(self, filters: list[Filter]) -> None:
         self.filters = filters
 
     def __call__(self, record: NamedTuple) -> NamedTuple | None:
