@@ -109,16 +109,28 @@ def _parse_credit_artists(parent: Element | None) -> list[CreditArtist]:
     if parent is None:
         return []
     artists = []
-    for artist_elem in parent.findall("artist"):
-        artist_id = artist_elem.findtext("id")
-        name = artist_elem.findtext("name")
-        artist_name_variation = artist_elem.findtext("anv")
-        join = artist_elem.findtext("join")
+    for artist_elem in parent:
+        if artist_elem.tag != "artist":
+            continue
+        artist_id = None
+        name = None
+        anv = None
+        join = None
+        for child in artist_elem:
+            tag = child.tag
+            if tag == "id":
+                artist_id = child.text
+            elif tag == "name":
+                name = child.text
+            elif tag == "anv":
+                anv = child.text
+            elif tag == "join":
+                join = child.text
         if artist_id and name:
             artists.append(
                 CreditArtist(
                     id=int(artist_id),
-                    artist_name_variation=artist_name_variation,
+                    artist_name_variation=anv,
                     join=join,
                     name=name,
                 )
@@ -131,18 +143,31 @@ def _parse_extra_artists(parent: Element | None) -> list[ExtraArtist]:
     if parent is None:
         return []
     artists = []
-    for artist_elem in parent.findall("artist"):
-        artist_id_text = artist_elem.findtext("id")
-        artist_id = int(artist_id_text) if artist_id_text else None
-        name = artist_elem.findtext("name")
-        artist_name_variation = artist_elem.findtext("anv")
-        role = artist_elem.findtext("role")
-        tracks = artist_elem.findtext("tracks")
+    for artist_elem in parent:
+        if artist_elem.tag != "artist":
+            continue
+        artist_id = None
+        name = None
+        anv = None
+        role = None
+        tracks = None
+        for child in artist_elem:
+            tag = child.tag
+            if tag == "id":
+                artist_id = int(child.text) if child.text else None
+            elif tag == "name":
+                name = child.text
+            elif tag == "anv":
+                anv = child.text
+            elif tag == "role":
+                role = child.text
+            elif tag == "tracks":
+                tracks = child.text
         if name:
             artists.append(
                 ExtraArtist(
                     id=artist_id,
-                    artist_name_variation=artist_name_variation,
+                    artist_name_variation=anv,
                     name=name,
                     role=role,
                     tracks=tracks,
@@ -195,12 +220,26 @@ def _parse_sub_tracks(parent: Element | None) -> list[SubTrack]:
     if parent is None:
         return []
     sub_tracks = []
-    for track_elem in parent.findall("track"):
-        position = track_elem.findtext("position")
-        title = track_elem.findtext("title")
-        duration = track_elem.findtext("duration")
-        artists = _parse_credit_artists(track_elem.find("artists"))
-        extra_artists = _parse_extra_artists(track_elem.find("extraartists"))
+    for track_elem in parent:
+        if track_elem.tag != "track":
+            continue
+        position = None
+        title = None
+        duration = None
+        artists: list[CreditArtist] = []
+        extra_artists: list[ExtraArtist] = []
+        for child in track_elem:
+            tag = child.tag
+            if tag == "position":
+                position = child.text
+            elif tag == "title":
+                title = child.text
+            elif tag == "duration":
+                duration = child.text
+            elif tag == "artists":
+                artists = _parse_credit_artists(child)
+            elif tag == "extraartists":
+                extra_artists = _parse_extra_artists(child)
         sub_tracks.append(
             SubTrack(
                 duration=duration,
@@ -218,13 +257,29 @@ def _parse_tracks(parent: Element | None) -> list[Track]:
     if parent is None:
         return []
     tracks = []
-    for track_elem in parent.findall("track"):
-        position = track_elem.findtext("position")
-        title = track_elem.findtext("title")
-        duration = track_elem.findtext("duration")
-        artists = _parse_credit_artists(track_elem.find("artists"))
-        extra_artists = _parse_extra_artists(track_elem.find("extraartists"))
-        sub_tracks = _parse_sub_tracks(track_elem.find("sub_tracks"))
+    for track_elem in parent:
+        if track_elem.tag != "track":
+            continue
+        position = None
+        title = None
+        duration = None
+        artists: list[CreditArtist] = []
+        extra_artists: list[ExtraArtist] = []
+        sub_tracks: list[SubTrack] = []
+        for child in track_elem:
+            tag = child.tag
+            if tag == "position":
+                position = child.text
+            elif tag == "title":
+                title = child.text
+            elif tag == "duration":
+                duration = child.text
+            elif tag == "artists":
+                artists = _parse_credit_artists(child)
+            elif tag == "extraartists":
+                extra_artists = _parse_extra_artists(child)
+            elif tag == "sub_tracks":
+                sub_tracks = _parse_sub_tracks(child)
         tracks.append(
             Track(
                 duration=duration,
@@ -263,15 +318,27 @@ def _parse_companies(parent: Element | None) -> list[Company]:
     if parent is None:
         return []
     companies = []
-    for company_elem in parent.findall("company"):
-        company_id = company_elem.findtext("id")
-        name = company_elem.findtext("name")
-        catalog_number = company_elem.findtext("catno")
-        entity_type_text = company_elem.findtext("entity_type")
-        entity_type = int(entity_type_text) if entity_type_text else None
-        entity_type_name = company_elem.findtext("entity_type_name")
-        # Access resource_url to mark it as handled
-        company_elem.findtext("resource_url")
+    for company_elem in parent:
+        if company_elem.tag != "company":
+            continue
+        company_id = None
+        name = None
+        catalog_number = None
+        entity_type = None
+        entity_type_name = None
+        for child in company_elem:
+            tag = child.tag
+            if tag == "id":
+                company_id = child.text
+            elif tag == "name":
+                name = child.text
+            elif tag == "catno":
+                catalog_number = child.text
+            elif tag == "entity_type":
+                entity_type = int(child.text) if child.text else None
+            elif tag == "entity_type_name":
+                entity_type_name = child.text
+            # resource_url is implicitly handled by iterating
         if company_id and name:
             companies.append(
                 Company(
@@ -306,18 +373,28 @@ def _parse_videos(parent: Element | None) -> list[Video]:
     if parent is None:
         return []
     videos = []
-    for video_elem in parent.findall("video"):
+    for video_elem in parent:
+        if video_elem.tag != "video":
+            continue
         src = video_elem.get("src")
         duration = video_elem.get("duration")
         embed = video_elem.get("embed")
         if src and duration:
+            description = None
+            title = None
+            for child in video_elem:
+                tag = child.tag
+                if tag == "description":
+                    description = child.text
+                elif tag == "title":
+                    title = child.text
             videos.append(
                 Video(
-                    description=video_elem.findtext("description"),
+                    description=description,
                     duration=int(duration),
                     embed=embed == "true",
                     src=src,
-                    title=video_elem.findtext("title"),
+                    title=title,
                 )
             )
     return videos
@@ -363,35 +440,92 @@ class ReleaseParser:
 
     def parse(self, elem: Element) -> Iterator[Release]:
         """Parse release XML element into Release record."""
-        master_id_elem = elem.find("master_id")
+        # Get attributes from element
+        release_id = _require_int(elem.get("id"))
+        status = elem.get("status")
+
+        # Initialize all fields
+        country = None
+        data_quality = None
         master_id = None
         is_main_release = None
-        if master_id_elem is not None and master_id_elem.text:
-            master_id = int(master_id_elem.text)
-            is_main_attr = master_id_elem.get("is_main_release")
-            is_main_release = is_main_attr == "true" if is_main_attr else None
+        notes = None
+        released = None
+        title = None
+        artists: list[CreditArtist] = []
+        companies: list[Company] = []
+        extra_artists: list[ExtraArtist] = []
+        formats: list[Format] = []
+        genres: list[str] = []
+        identifiers: list[Identifier] = []
+        labels: list[ReleaseLabel] = []
+        series: list[Series] = []
+        styles: list[str] = []
+        tracklist: list[Track] = []
+        videos: list[Video] = []
+
+        # Single iteration over children
+        for child in elem:
+            tag = child.tag
+            if tag == "country":
+                country = child.text
+            elif tag == "data_quality":
+                data_quality = child.text
+            elif tag == "master_id":
+                if child.text:
+                    master_id = int(child.text)
+                    is_main_attr = child.get("is_main_release")
+                    is_main_release = is_main_attr == "true" if is_main_attr else None
+            elif tag == "notes":
+                notes = child.text
+            elif tag == "released":
+                released = child.text
+            elif tag == "title":
+                title = child.text
+            elif tag == "artists":
+                artists = _parse_credit_artists(child)
+            elif tag == "companies":
+                companies = _parse_companies(child)
+            elif tag == "extraartists":
+                extra_artists = _parse_extra_artists(child)
+            elif tag == "formats":
+                formats = _parse_formats(child)
+            elif tag == "genres":
+                genres = _parse_genres(child)
+            elif tag == "identifiers":
+                identifiers = _parse_identifiers(child)
+            elif tag == "labels":
+                labels = _parse_release_labels(child)
+            elif tag == "series":
+                series = _parse_series(child)
+            elif tag == "styles":
+                styles = _parse_styles(child)
+            elif tag == "tracklist":
+                tracklist = _parse_tracks(child)
+            elif tag == "videos":
+                videos = _parse_videos(child)
 
         yield Release(
-            id=_require_int(elem.get("id")),
-            country=elem.findtext("country"),
-            data_quality=elem.findtext("data_quality"),
+            id=release_id,
+            country=country,
+            data_quality=data_quality,
             is_main_release=is_main_release,
             master_id=master_id,
-            notes=elem.findtext("notes"),
-            released=elem.findtext("released"),
-            status=elem.get("status"),
-            title=elem.findtext("title"),
-            artists=_parse_credit_artists(elem.find("artists")),
-            companies=_parse_companies(elem.find("companies")),
-            extra_artists=_parse_extra_artists(elem.find("extraartists")),
-            formats=_parse_formats(elem.find("formats")),
-            genres=_parse_genres(elem.find("genres")),
-            identifiers=_parse_identifiers(elem.find("identifiers")),
-            labels=_parse_release_labels(elem.find("labels")),
-            series=_parse_series(elem.find("series")),
-            styles=_parse_styles(elem.find("styles")),
-            tracklist=_parse_tracks(elem.find("tracklist")),
-            videos=_parse_videos(elem.find("videos")),
+            notes=notes,
+            released=released,
+            status=status,
+            title=title,
+            artists=artists,
+            companies=companies,
+            extra_artists=extra_artists,
+            formats=formats,
+            genres=genres,
+            identifiers=identifiers,
+            labels=labels,
+            series=series,
+            styles=styles,
+            tracklist=tracklist,
+            videos=videos,
         )
 
 

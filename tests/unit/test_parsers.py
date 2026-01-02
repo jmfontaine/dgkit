@@ -210,8 +210,10 @@ class TestMasterReleaseParser:
         assert master.notes is None
         assert master.data_quality == "Correct"
         assert master.artists == [
-            CreditArtist(id=1, artist_name_variation="", join=",", name="Artist One"),
-            CreditArtist(id=2, artist_name_variation="", join="", name="Artist Two"),
+            CreditArtist(id=1, artist_name_variation=None, join=",", name="Artist One"),
+            CreditArtist(
+                id=2, artist_name_variation=None, join=None, name="Artist Two"
+            ),
         ]
         assert master.genres == ["Electronic", "Rock"]
         assert master.styles == ["Ambient", "Techno"]
@@ -340,7 +342,9 @@ class TestReleaseParser:
         assert release.master_id == 1660109
         assert release.is_main_release is True
         assert release.artists == [
-            CreditArtist(id=1, artist_name_variation="", join="", name="The Persuader")
+            CreditArtist(
+                id=1, artist_name_variation=None, join=None, name="The Persuader"
+            )
         ]
         assert release.labels == [
             ReleaseLabel(id=5, catalog_number="SK032", name="Svek")
@@ -348,10 +352,10 @@ class TestReleaseParser:
         assert release.extra_artists == [
             ExtraArtist(
                 id=239,
-                artist_name_variation="",
+                artist_name_variation=None,
                 name="Jesper Dahlbäck",
                 role="Written-By",
-                tracks="",
+                tracks=None,
             )
         ]
         assert release.formats == [
@@ -388,7 +392,7 @@ class TestReleaseParser:
         assert release.companies == [
             Company(
                 id=271046,
-                catalog_number="",
+                catalog_number=None,
                 entity_type=23,
                 entity_type_name="Recorded At",
                 name="The Globe Studios",
@@ -474,16 +478,16 @@ class TestReleaseParser:
         assert track.duration == "5:00"
         assert track.artists == [
             CreditArtist(
-                id=100, artist_name_variation="T.A.", join="", name="Track Artist"
+                id=100, artist_name_variation="T.A.", join=None, name="Track Artist"
             )
         ]
         assert track.extra_artists == [
             ExtraArtist(
                 id=200,
-                artist_name_variation="",
+                artist_name_variation=None,
                 name="Remixer",
                 role="Remix",
-                tracks="",
+                tracks=None,
             )
         ]
         assert track.sub_tracks == []
