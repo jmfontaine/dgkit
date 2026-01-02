@@ -46,3 +46,28 @@ Do not use `# type: ignore` comments. They hide real issues and accumulate techn
 - Refactor code to make types explicit
 
 If a type ignore seems necessary, investigate whether the code design can be improved first.
+
+## Comment Tags
+
+Use standard comment tags to mark code that needs attention:
+
+| Tag | Meaning | When to Use |
+|-----|---------|-------------|
+| `TODO` | Work to be done | Missing features, planned improvements |
+| `FIXME` | Known bug | Code that is broken and needs repair |
+| `HACK` | Temporary workaround | Quick fix that should be replaced |
+| `KLUDGE` | Inelegant but intentional | Code that works but violates normal style for a specific reason (e.g., performance) |
+
+### KLUDGE Comments
+
+Use `KLUDGE` when code intentionally deviates from normal patterns for a documented reason. Unlike `HACK`, a `KLUDGE` is not temporary - it's the right solution given the constraints.
+
+```python
+# KLUDGE: Inlined to eliminate 3M function calls. See performance.md.
+[e.text for e in p.findall("tag") if e.text] if (p := elem.find("parent")) else []
+```
+
+Always include:
+
+1. Why the normal approach wasn't used
+2. Reference to documentation or measurements if applicable

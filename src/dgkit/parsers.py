@@ -30,11 +30,10 @@ def _require_int(value: str | None, field: str = "id") -> int:
     return int(value)
 
 
-def _parse_text_list(parent: Element | None, tag: str) -> list[str]:
-    """Parse a list of text elements from a parent."""
-    if parent is None:
-        return []
-    return [elem.text for elem in parent.findall(tag) if elem.text]
+# KLUDGE: _parse_text_list was inlined at call sites to eliminate ~3M function
+# calls when processing 1M releases. See decision 0002. The pattern:
+#   [e.text for e in p.findall("tag") if e.text] if (p := elem.find("parent")) is not None else []
+# replaces what was previously: _parse_text_list(elem.find("parent"), "tag")
 
 
 def _parse_artist_refs(parent: Element | None) -> list[ArtistRef]:
@@ -63,8 +62,16 @@ class ArtistParser:
             aliases=_parse_artist_refs(elem.find("aliases")),
             groups=_parse_artist_refs(elem.find("groups")),
             members=_parse_artist_refs(elem.find("members")),
-            name_variations=_parse_text_list(elem.find("namevariations"), "name"),
-            urls=_parse_text_list(elem.find("urls"), "url"),
+            name_variations=(
+                [e.text for e in p.findall("name") if e.text]
+                if (p := elem.find("namevariations")) is not None
+                else []
+            ),
+            urls=(
+                [e.text for e in p.findall("url") if e.text]
+                if (p := elem.find("urls")) is not None
+                else []
+            ),
         )
 
 
@@ -100,12 +107,21 @@ class LabelParser:
             profile=elem.findtext("profile"),
             parent_label=parent_label,
             sub_labels=_parse_label_refs(elem.find("sublabels")),
-            urls=_parse_text_list(elem.find("urls"), "url"),
+            urls=(
+                [e.text for e in p.findall("url") if e.text]
+                if (p := elem.find("urls")) is not None
+                else []
+            ),
         )
 
 
 def _parse_credit_artists(parent: Element | None) -> list[CreditArtist]:
-    """Parse artist credits (id, name, artist_name_variation, join)."""
+    """Parse artist credits (id, name, artist_name_variation, join).
+
+    KLUDGE: Uses single-pass iteration over children instead of multiple
+    findtext() calls. Called ~3M times for 1M releases, so avoiding repeated
+    tree traversals is significant. See decision 0002.
+    """
     if parent is None:
         return []
     artists = []
@@ -139,7 +155,12 @@ def _parse_credit_artists(parent: Element | None) -> list[CreditArtist]:
 
 
 def _parse_extra_artists(parent: Element | None) -> list[ExtraArtist]:
-    """Parse extra artist credits (producer, engineer, etc.)."""
+    """Parse extra artist credits (producer, engineer, etc.).
+
+    KLUDGE: Uses single-pass iteration over children instead of multiple
+    findtext() calls. Called ~3M times for 1M releases, so avoiding repeated
+    tree traversals is significant. See decision 0002.
+    """
     if parent is None:
         return []
     artists = []
@@ -207,8 +228,10 @@ def _parse_formats(parent: Element | None) -> list[Format]:
                     name=name,
                     quantity=int(quantity_text),
                     text=text,
-                    descriptions=_parse_text_list(
-                        format_elem.find("descriptions"), "description"
+                    descriptions=(
+                        [e.text for e in p.findall("description") if e.text]
+                        if (p := format_elem.find("descriptions")) is not None
+                        else []
                     ),
                 )
             )
@@ -402,12 +425,16 @@ def _parse_videos(parent: Element | None) -> list[Video]:
 
 def _parse_genres(parent: Element | None) -> list[str]:
     """Parse genres list."""
-    return _parse_text_list(parent, "genre")
+    if parent is None:
+        return []
+    return [e.text for e in parent.findall("genre") if e.text]
 
 
 def _parse_styles(parent: Element | None) -> list[str]:
     """Parse styles list."""
-    return _parse_text_list(parent, "style")
+    if parent is None:
+        return []
+    return [e.text for e in parent.findall("style") if e.text]
 
 
 class MasterReleaseParser:

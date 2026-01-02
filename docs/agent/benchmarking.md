@@ -19,7 +19,25 @@ See `benchmarks/README.md` for detailed setup and requirements.
 
 ## Profiling
 
-Profile dgkit to identify bottlenecks:
+Profile dgkit to identify bottlenecks. CLI one-liner:
+
+```bash
+uv run python -c "
+import cProfile, pstats, io, sys
+from dgkit.cli import app
+sys.argv = ['dgkit', 'convert', '--format', 'blackhole', '--no-progress', '--no-summary', './samples/discogs_20260101_releases_sample_1000000.xml.gz']
+pr = cProfile.Profile()
+pr.enable()
+try: app()
+except SystemExit: pass
+pr.disable()
+s = io.StringIO()
+pstats.Stats(pr, stream=s).sort_stats('cumulative').print_stats(40)
+print(s.getvalue())
+"
+```
+
+Or use the programmatic API:
 
 ```python
 import cProfile
