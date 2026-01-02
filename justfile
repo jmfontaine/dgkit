@@ -22,8 +22,9 @@ docs:
 
 # Format source code
 format:
-    ruff format                   # Python files
-    pyproject-fmt pyproject.toml  # pyproject.toml
+    ruff format                              # Python files
+    pyproject-fmt pyproject.toml             # pyproject.toml
+    npx markdownlint-cli2 --fix "**/*.md"    # Markdown files
 
 # Fix fixable source code defects
 fix:
@@ -36,6 +37,7 @@ lint:
     ruff check                            # Python files linting
     pyproject-fmt --check pyproject.toml  # pyproject.toml formatting
     sqlfluff lint src/dgkit/sql           # SQL files linting
+    npx markdownlint-cli2 "**/*.md"       # Markdown files linting
 
 # Run tests (optional: path or pytest args)
 test *args:

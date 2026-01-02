@@ -20,7 +20,6 @@
 - Have the `--summary` option measure the number of XML elements processed to align with the `--limit` option and avoid having a limit of 1000 but see 2345 records processed in the summary which is confusing.
 - Create a vanilla JSON format writer.
 
-
 ## Questions
 
 - In a command, how could we organize the options that relate to the reader vs to the writer? Should we use a naming convention, should we group them in the help screen using Typer's help panels? Should we do something different? Should we just ignore this?
@@ -47,7 +46,6 @@
 - Should we have logging? Maybe for debugging or tracking performance?
 - Will users really import input files independently or should we always process all of them? Could they only care in a single entity type (e.g., artists)? Would that even make sense? Should the default behavior be to process all files, unless an option is passed to ignored some of them?
 
-
 ## Next Items
 
 - Should we offer an option to normalize the data in the file writers to avoid bloating them with duplicated data?
@@ -55,18 +53,18 @@
 - How could we resume stopped imports?
 - Create a Discogs stats report over time.
 
-
 - Test UX and document usage
 - Review code and document architecture and design decisions in CLAUDE.md
 - Test dgkit with all 2025 dumps, and possibly dumps from previous years.
 
-
 ### v0.1.0 - Foundations
-+ Add PostgreSQL writer
-+ Clean messaging on failure (no debug trace unless enabled by the user)
-+ Finalize models
-+ Run linters
-+ Test UX
+
+- Add PostgreSQL writer
+- Clean messaging on failure (no debug trace unless enabled by the user)
+- Finalize models
+- Run linters
+- Test UX
+
 - Review code
 - Update tests
 - Enable dependable.
@@ -74,14 +72,17 @@
 - Create publish pipeline
 - Benchmark against alternatives
 - Create CLAUDE.md file
-- Add a nice screenshot to the top of the READE file (see https://github.com/chaosprint/hindsight).
+- Add a nice screenshot to the top of the READE file (see <https://github.com/chaosprint/hindsight>).
 - Package release
 
 ### v0.2.0 - Performance Tuning
+
 - Optimize imports for optional features
 - Look into multi-processing
+- Research JSON libraries
 
 ### v0.3.0 - Additional Features
+
 - Add `query` command to run a query against a converted file format or exported database
 - Implement and document auto-completion.
 - Test Python versions compatibility.
@@ -89,9 +90,10 @@
 - Add support for Parquet file format.
 
 ### v0.4.0 - Optimized Deployment
+
 - Release package variant with unusual dependencies
 
 ### v0.5.0 - UX Improvements
 
-- Implement best practices from https://clig.dev/ and https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46
+- Implement best practices from <https://clig.dev/> and <https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46>
 - Omit Modified and Dropped from the summary when no filters were passed.
