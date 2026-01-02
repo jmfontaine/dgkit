@@ -7,18 +7,14 @@ from dgkit.models import (
     ArtistRef,
     Company,
     CreditArtist,
-    DataQuality,
     ExtraArtist,
     Format,
-    FormatName,
     Identifier,
-    IdentifierType,
     Label,
     LabelRef,
     MasterRelease,
     Release,
     ReleaseLabel,
-    ReleaseStatus,
     Series,
     SubTrack,
     Track,
@@ -41,18 +37,6 @@ def _parse_text_list(parent: Element | None, tag: str) -> list[str]:
     return [elem.text for elem in parent.findall(tag) if elem.text]
 
 
-def _parse_data_quality(elem: Element) -> DataQuality | None:
-    """Parse data_quality field, converting to enum."""
-    text = elem.findtext("data_quality")
-    return DataQuality(text) if text else None
-
-
-def _parse_release_status(elem: Element) -> ReleaseStatus | None:
-    """Parse release status attribute, converting to enum."""
-    text = elem.get("status")
-    return ReleaseStatus(text) if text else None
-
-
 def _parse_artist_refs(parent: Element | None) -> list[ArtistRef]:
     """Parse a list of artist references from a parent element."""
     if parent is None:
@@ -72,7 +56,7 @@ class ArtistParser:
         """Parse artist XML element into Artist record."""
         yield Artist(
             id=_require_int(elem.findtext("id")),
-            data_quality=_parse_data_quality(elem),
+            data_quality=elem.findtext("data_quality"),
             name=elem.findtext("name"),
             profile=elem.findtext("profile"),
             real_name=elem.findtext("realname"),
@@ -111,7 +95,7 @@ class LabelParser:
         yield Label(
             id=_require_int(elem.get("id") or elem.findtext("id")),
             contact_info=elem.findtext("contactinfo"),
-            data_quality=_parse_data_quality(elem),
+            data_quality=elem.findtext("data_quality"),
             name=elem.findtext("name") or elem.text,
             profile=elem.findtext("profile"),
             parent_label=parent_label,
@@ -195,7 +179,7 @@ def _parse_formats(parent: Element | None) -> list[Format]:
         if name and quantity_text:
             formats.append(
                 Format(
-                    name=FormatName(name),
+                    name=name,
                     quantity=int(quantity_text),
                     text=text,
                     descriptions=_parse_text_list(
@@ -267,7 +251,7 @@ def _parse_identifiers(parent: Element | None) -> list[Identifier]:
             identifiers.append(
                 Identifier(
                     description=description,
-                    type=IdentifierType(id_type),
+                    type=id_type,
                     value=value,
                 )
             )
@@ -362,7 +346,7 @@ class MasterReleaseParser:
 
         yield MasterRelease(
             id=_require_int(elem.get("id")),
-            data_quality=_parse_data_quality(elem),
+            data_quality=elem.findtext("data_quality"),
             main_release=main_release,
             notes=elem.findtext("notes"),
             title=elem.findtext("title"),
@@ -390,12 +374,12 @@ class ReleaseParser:
         yield Release(
             id=_require_int(elem.get("id")),
             country=elem.findtext("country"),
-            data_quality=_parse_data_quality(elem),
+            data_quality=elem.findtext("data_quality"),
             is_main_release=is_main_release,
             master_id=master_id,
             notes=elem.findtext("notes"),
             released=elem.findtext("released"),
-            status=_parse_release_status(elem),
+            status=elem.get("status"),
             title=elem.findtext("title"),
             artists=_parse_credit_artists(elem.find("artists")),
             companies=_parse_companies(elem.find("companies")),

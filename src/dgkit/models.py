@@ -1,96 +1,4 @@
-from enum import StrEnum
 from typing import NamedTuple
-
-
-class DataQuality(StrEnum):
-    """Data quality rating for Discogs records."""
-
-    COMPLETE_AND_CORRECT = "Complete and Correct"
-    CORRECT = "Correct"
-    ENTIRELY_INCORRECT = "Entirely Incorrect"
-    NEEDS_MAJOR_CHANGES = "Needs Major Changes"
-    NEEDS_MINOR_CHANGES = "Needs Minor Changes"
-    NEEDS_VOTE = "Needs Vote"
-
-
-class ReleaseStatus(StrEnum):
-    """Status of a release submission."""
-
-    ACCEPTED = "Accepted"
-    DELETED = "Deleted"
-    DRAFT = "Draft"
-    REJECTED = "Rejected"
-
-
-class IdentifierType(StrEnum):
-    """Type of release identifier."""
-
-    ASIN = "ASIN"
-    BARCODE = "Barcode"
-    DEPOSITO_LEGAL = "Depósito Legal"
-    DISTRIBUTION_CODE = "Distribution Code"
-    ISRC = "ISRC"
-    LABEL_CODE = "Label Code"
-    MASTERING_SID_CODE = "Mastering SID Code"
-    MATRIX_RUNOUT = "Matrix / Runout"
-    MOULD_SID_CODE = "Mould SID Code"
-    OTHER = "Other"
-    PRESSING_PLANT_ID = "Pressing Plant ID"
-    PRICE_CODE = "Price Code"
-    RIGHTS_SOCIETY = "Rights Society"
-    SPARS_CODE = "SPARS Code"
-
-
-class FormatName(StrEnum):
-    """Physical format name of a release."""
-
-    ACETATE = "Acetate"
-    ALL_MEDIA = "All Media"
-    BETAMAX = "Betamax"
-    BLU_RAY = "Blu-ray"
-    BLU_RAY_R = "Blu-ray-R"
-    BOX_SET = "Box Set"
-    CASSETTE = "Cassette"
-    CD = "CD"
-    CDR = "CDr"
-    CDV = "CDV"
-    CYLINDER = "Cylinder"
-    DAT = "DAT"
-    DCC = "DCC"
-    DVD = "DVD"
-    DVDR = "DVDr"
-    DUALDISC = "DualDisc"
-    FOUR_TRACK_CARTRIDGE = "4-Track Cartridge"
-    EIGHT_TRACK_CARTRIDGE = "8-Track Cartridge"
-    EDISON_DISC = "Edison Disc"
-    FILE = "File"
-    FILM_REEL = "Film Reel"
-    FLEXI_DISC = "Flexi-disc"
-    FLOPPY_DISK = "Floppy Disk"
-    HD_DVD = "HD DVD"
-    HITCLIPS = "HitClips"
-    HYBRID = "Hybrid"
-    LASERDISC = "Laserdisc"
-    LATHE_CUT = "Lathe Cut"
-    MEMORY_STICK = "Memory Stick"
-    MICROCASSETTE = "Microcassette"
-    MIGHTY_TINY = "Mighty Tiny"
-    MINIDISC = "Minidisc"
-    MVD = "MVD"
-    PATHÉ_DISC = "Pathé Disc"
-    PLAYBUTTON = "Playbutton"
-    REEL_TO_REEL = "Reel-To-Reel"
-    SACD = "SACD"
-    SHELLAC = "Shellac"
-    SELECTAVISION = "SelectaVision"
-    UMD = "UMD"
-    U_MATIC = "U-matic"
-    VHD = "VHD"
-    VHS = "VHS"
-    VIDEO8 = "Video8"
-    VINYL = "Vinyl"
-    WIRE_RECORDING = "Wire Recording"
-    ZIP_DISK = "Zip Disk"
 
 
 class ArtistRef(NamedTuple):
@@ -102,7 +10,7 @@ class ArtistRef(NamedTuple):
 
 class Artist(NamedTuple):
     id: int
-    data_quality: DataQuality | None
+    data_quality: str | None
     name: str | None
     profile: str | None
     real_name: str | None
@@ -123,7 +31,7 @@ class LabelRef(NamedTuple):
 class Label(NamedTuple):
     id: int
     contact_info: str | None
-    data_quality: DataQuality | None
+    data_quality: str | None
     name: str | None
     profile: str | None
     parent_label: LabelRef | None = None
@@ -161,7 +69,7 @@ class ReleaseLabel(NamedTuple):
 class Format(NamedTuple):
     """Physical format of a release."""
 
-    name: FormatName
+    name: str
     quantity: int
     text: str | None
     descriptions: list[str] = []
@@ -192,7 +100,7 @@ class Identifier(NamedTuple):
     """Identifier like barcode, matrix, etc."""
 
     description: str | None
-    type: IdentifierType
+    type: str
     value: str
 
 
@@ -226,7 +134,7 @@ class Video(NamedTuple):
 
 class MasterRelease(NamedTuple):
     id: int
-    data_quality: DataQuality | None
+    data_quality: str | None
     main_release: int | None
     notes: str | None
     title: str | None
@@ -240,12 +148,12 @@ class MasterRelease(NamedTuple):
 class Release(NamedTuple):
     id: int
     country: str | None
-    data_quality: DataQuality | None
+    data_quality: str | None
     is_main_release: bool | None
     master_id: int | None
     notes: str | None
     released: str | None
-    status: ReleaseStatus | None
+    status: str | None
     title: str | None
     artists: list[CreditArtist] = []
     companies: list[Company] = []
