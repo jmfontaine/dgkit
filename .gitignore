@@ -3,7 +3,7 @@ __pycache__
 /.pytest_cache
 /.ruff_cache
 /.venv
-/dist
-/samples
 /benchmarks/alternatives
 /benchmarks/results
+/dist
+/samples
