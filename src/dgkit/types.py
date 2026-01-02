@@ -49,19 +49,14 @@ class Parser(Protocol):
 class Reader(Protocol):
     """Protocol for input readers."""
 
-    @contextmanager
-    def open(self, path: Path) -> Iterator[IO[bytes]]: ...
-
-
-@runtime_checkable
-class TrackableReader(Reader, Protocol):
-    """Protocol for readers that support progress tracking."""
-
     @property
     def bytes_read(self) -> int: ...
 
     @property
     def total_size(self) -> int: ...
+
+    @contextmanager
+    def open(self, path: Path) -> Iterator[IO[bytes]]: ...
 
 
 class Writer(Protocol):

@@ -6,16 +6,7 @@ from typing import IO, Iterator
 
 
 class GzipReader:
-    """Reader using standard gzip module."""
-
-    @contextmanager
-    def open(self, path: Path) -> Iterator[IO[bytes]]:
-        with gzip.open(path, "rb") as fp:
-            yield fp
-
-
-class TrackingGzipReader:
-    """Gzip reader that tracks compressed bytes read for progress reporting."""
+    """Gzip reader with progress tracking support."""
 
     def __init__(self) -> None:
         self._fileobj: IO[bytes] | None = None
@@ -24,10 +15,10 @@ class TrackingGzipReader:
     @contextmanager
     def open(self, path: Path) -> Iterator[IO[bytes]]:
         self._total_size = path.stat().st_size
-        with open(path, "rb") as raw:
-            self._fileobj = raw
-            with gzip.GzipFile(fileobj=raw) as gz:
-                yield gz
+        with open(path, "rb") as compressed:
+            self._fileobj = compressed
+            with gzip.GzipFile(fileobj=compressed) as decompressed:
+                yield decompressed
             self._fileobj = None
 
     @property

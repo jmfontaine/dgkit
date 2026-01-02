@@ -39,24 +39,24 @@ class TrackingElement:
         self._accessed_tags.add(tag)
         return self._elem.findtext(tag, default)
 
-    def find(self, tag: str) -> "TrackingElement | None":
-        """Find a child element."""
-        self._accessed_tags.add(tag)
-        child = self._elem.find(tag)
-        if child is None:
-            return None
-        if tag not in self._children:
-            self._children[tag] = [TrackingElement(child, f"{self._path}/{tag}")]
-        return self._children[tag][0]
-
-    def findall(self, tag: str) -> list["TrackingElement"]:
-        """Find all matching child elements."""
-        self._accessed_tags.add(tag)
+    def _ensure_children_cached(self, tag: str) -> None:
+        """Ensure all children with the given tag are cached."""
         if tag not in self._children:
             self._children[tag] = [
                 TrackingElement(child, f"{self._path}/{tag}")
                 for child in self._elem.findall(tag)
             ]
+
+    def find(self, tag: str) -> "TrackingElement | None":
+        """Find a child element."""
+        self._accessed_tags.add(tag)
+        self._ensure_children_cached(tag)
+        return self._children[tag][0] if self._children[tag] else None
+
+    def findall(self, tag: str) -> list["TrackingElement"]:
+        """Find all matching child elements."""
+        self._accessed_tags.add(tag)
+        self._ensure_children_cached(tag)
         return self._children[tag]
 
     def get_unaccessed(self) -> set[str]:

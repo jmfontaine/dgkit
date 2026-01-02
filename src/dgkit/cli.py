@@ -127,11 +127,10 @@ def convert_cmd(
     # Check for existing output files (only for file-based formats)
     if format not in (FileFormat.console, FileFormat.blackhole) and not overwrite:
         valid_files = [f for f in files if f.is_file()]
-        existing = [
-            build_output_path(f, format, output_dir, compress)
-            for f in valid_files
-            if build_output_path(f, format, output_dir, compress).exists()
+        output_paths = [
+            build_output_path(f, format, output_dir, compress) for f in valid_files
         ]
+        existing = [p for p in output_paths if p.exists()]
         if existing:
             typer.echo("The following files already exist:")
             for path in existing:
@@ -207,8 +206,8 @@ def load_cmd(
         path = build_database_path(valid_files, Path("."))
         dsn = str(path)
 
-    # Check for existing database (only for file-based DSNs)
-    if not dsn.startswith("sqlite://") or "/:memory:" not in dsn:
+    # Check for existing database (only for SQLite file-based DSNs)
+    if database == DatabaseType.sqlite and ":memory:" not in dsn:
         db_path = Path(dsn.replace("sqlite:///", "").replace("sqlite://", ""))
         if db_path.exists() and not overwrite:
             typer.echo(f"Database already exists: {db_path}")

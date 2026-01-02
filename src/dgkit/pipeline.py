@@ -1,7 +1,7 @@
 import re
 from contextlib import ExitStack
 from pathlib import Path
-from typing import IO, Callable, Iterator, TypeGuard, cast
+from typing import IO, Callable, Iterator, cast
 
 from lxml import etree
 from rich.progress import (
@@ -20,7 +20,7 @@ from rich.text import Text
 
 from dgkit.filters import Filter, FilterChain
 from dgkit.parsers import get_parser
-from dgkit.readers import GzipReader, TrackingGzipReader
+from dgkit.readers import GzipReader
 from dgkit.summary import Summary, SummaryCollector
 from dgkit.types import (
     Compression,
@@ -29,7 +29,6 @@ from dgkit.types import (
     FileFormat,
     Parser,
     Reader,
-    TrackableReader,
     Writer,
 )
 from dgkit.validation import TrackingElement, UnhandledElementError
@@ -54,11 +53,6 @@ def find_elements(
         count += 1
         if limit is not None and count >= limit:
             break
-
-
-def is_trackable(reader: Reader) -> TypeGuard[TrackableReader]:
-    """Check if a reader supports progress tracking."""
-    return isinstance(reader, TrackableReader)
 
 
 class ElementCountColumn(ProgressColumn):
@@ -87,9 +81,6 @@ def execute(
     summary: SummaryCollector | None = None,
 ) -> None:
     """Execute the pipeline."""
-    trackable: TrackableReader | None = (
-        cast(TrackableReader, reader) if is_trackable(reader) else None
-    )
     with reader.open(path) as stream:
         for elem in find_elements(stream, parser.tag, limit):
             # Wrap element for tracking if strict mode is enabled
@@ -105,8 +96,8 @@ def execute(
                 message = f"Parse error in {parser.tag} id={element_id}: {e}"
                 if summary:
                     summary.record_unhandled(message)
-                if trackable is not None and on_progress_bytes is not None:
-                    on_progress_bytes(trackable.bytes_read)
+                if on_progress_bytes is not None:
+                    on_progress_bytes(reader.bytes_read)
                 if on_progress_element:
                     on_progress_element()
                 continue
@@ -140,8 +131,8 @@ def execute(
                     if summary:
                         summary.record_unhandled(message)
 
-            if trackable is not None and on_progress_bytes is not None:
-                on_progress_bytes(trackable.bytes_read)
+            if on_progress_bytes is not None:
+                on_progress_bytes(reader.bytes_read)
             if on_progress_element:
                 on_progress_element()
 
@@ -201,14 +192,9 @@ class ProgressTracker:
                 self._progress = stack.enter_context(create_progress_bytes())
             self._task_id = self._progress.add_task("Processing", total=total)
 
-    @property
-    def use_tracking_reader(self) -> bool:
-        """Whether to use a tracking reader for byte-based progress."""
-        return self._show_progress and not self._use_elements
-
     def get_reader(self) -> Reader:
-        """Get the appropriate reader based on progress tracking needs."""
-        return TrackingGzipReader() if self.use_tracking_reader else GzipReader()
+        """Get the reader for processing files."""
+        return GzipReader()
 
     def on_bytes(self, bytes_read: int) -> None:
         """Callback for byte-based progress updates."""
@@ -229,7 +215,9 @@ class ProgressTracker:
     @property
     def bytes_callback(self) -> Callable[[int], None] | None:
         """Get bytes callback if byte-based progress is active."""
-        return self.on_bytes if self.use_tracking_reader else None
+        return (
+            self.on_bytes if (self._show_progress and not self._use_elements) else None
+        )
 
     @property
     def element_callback(self) -> Callable[[], None] | None:

@@ -88,8 +88,6 @@ def _get_field_value(record: NamedTuple, field: str) -> Any:
     for part in field.split("."):
         if hasattr(value, part):
             value = getattr(value, part)
-        elif hasattr(value, "_asdict"):
-            value = value._asdict().get(part)
         elif isinstance(value, dict):
             value = value.get(part)
         else:
@@ -146,9 +144,8 @@ def _evaluate(parsed: Any, record: NamedTuple) -> bool:
         return _compare(field_value, str(parsed["op"]), parsed["value"])
 
     # List of terms (single comparison wrapped in list)
-    if isinstance(parsed, (list, pp.ParseResults)):
-        for item in parsed:
-            return _evaluate(item, record)
+    if isinstance(parsed, (list, pp.ParseResults)) and parsed:
+        return _evaluate(parsed[0], record)
 
     return True
 
