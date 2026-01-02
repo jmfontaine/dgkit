@@ -6,6 +6,14 @@ default := "_list"
 _list:
     just --list
 
+# Run benchmarks against alternatives
+bench *args:
+    python benchmarks/run.py {{ args }}
+
+# Set up benchmark
+bench-setup:
+    python benchmarks/setup.py
+
 # Run all checks (lint, typecheck, test)
 check:
     just lint
@@ -66,11 +74,3 @@ test *args:
 # Type check source code
 typecheck:
     ty check
-
-# Set up benchmark alternatives
-bench-setup:
-    ./benchmarks/setup.sh
-
-# Run benchmarks against alternatives
-bench *args:
-    ./benchmarks/run.sh {{ args }}

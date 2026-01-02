@@ -58,7 +58,7 @@ Key functions to watch:
 
 | Tool | Language | Database | Source |
 |------|----------|----------|--------|
-| [discogs-xml2db](https://github.com/philipmat/discogs-xml2db) | Python + C# | PostgreSQL, MySQL | GitHub |
+| [discogs-xml2db](https://github.com/philipmat/discogs-xml2db) | Python, C# | PostgreSQL, MySQL | GitHub |
 | [dgtools](https://github.com/marcw/dgtools) | Go | PostgreSQL | GitHub |
 | [discogs-load](https://github.com/DylanBartels/discogs-load) | Rust | PostgreSQL | GitHub |
 | [discogs-batch](https://github.com/echovisionlab/discogs-batch) | Java | PostgreSQL | GitHub |

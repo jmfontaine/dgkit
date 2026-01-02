@@ -4,8 +4,9 @@ Compare dgkit performance against alternative Discogs data processing tools.
 
 ## Prerequisites
 
-- [hyperfine](https://github.com/sharkdp/hyperfine) - CLI benchmarking tool
-- [gtime](https://formulae.brew.sh/formula/gnu-time) - GNU time for memory measurement (macOS: `brew install gnu-time`)
+- GNU time for timing and memory measurement
+  - macOS: `brew install gnu-time`
+  - Linux: `apt install time` (uses `/usr/bin/time`)
 - Sample data in `../samples/` (see main README for creating samples)
 
 ## Setup
@@ -13,15 +14,16 @@ Compare dgkit performance against alternative Discogs data processing tools.
 Install alternative tools:
 
 ```shell
-cd benchmarks
-./setup.sh
+just bench-setup
+# or: python benchmarks/setup.py
 ```
 
 This clones and builds:
 
 | Tool | Language | Repository |
 |------|----------|------------|
-| discogs-xml2db | Python | [philipmat/discogs-xml2db](https://github.com/philipmat/discogs-xml2db) |
+| discogs-xml2db-python | Python | [philipmat/discogs-xml2db](https://github.com/philipmat/discogs-xml2db) |
+| discogs-xml2db-csharp | C# | [philipmat/discogs-xml2db](https://github.com/philipmat/discogs-xml2db) |
 | dgtools | Go | [marcw/dgtools](https://github.com/marcw/dgtools) |
 | discogs-load | Rust | [DylanBartels/discogs-load](https://github.com/DylanBartels/discogs-load) |
 | discogs-batch | Java | [echovisionlab/discogs-batch](https://github.com/echovisionlab/discogs-batch) |
@@ -29,20 +31,23 @@ This clones and builds:
 ## Running Benchmarks
 
 ```shell
-# Default: 1M releases sample
-./run.sh
+# All tools
+just bench -i samples/discogs_20260101_releases_sample_1000000.xml.gz
 
-# Specific sample file
-./run.sh ../samples/discogs_20260101_artists_sample_1000000.xml.gz
+# Single tool
+just bench -i samples/discogs_20260101_releases_sample_1000000.xml.gz dgkit
+
+# Multiple tools
+just bench -i samples/discogs_20260101_releases_sample_1000000.xml.gz dgkit xml2db-csharp
 ```
 
-The script measures:
+Available tools: `dgkit`, `xml2db-python`, `xml2db-csharp`
 
-1. **Timing** - Mean execution time via hyperfine (3 runs + warmup)
-2. **Memory** - Peak RSS via GNU time
-3. **Output size** - Resulting file sizes
+The script measures (single run per tool via gtime):
 
-Results are saved to `results/<sample_name>_timing.json`.
+- **Wall clock time**
+- **User/system CPU time**
+- **Peak memory (RSS)**
 
 ## Profiling dgkit
 

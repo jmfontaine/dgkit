@@ -8,8 +8,8 @@
 ├── .python-version                       # Python version for uv
 ├── benchmarks
 │   ├── README.md                         # Benchmark documentation
-│   ├── setup.sh                          # Install alternative tools
-│   ├── run.sh                            # Run benchmark comparison
+│   ├── setup.py                          # Install alternative tools
+│   ├── run.py                            # Run benchmark comparison
 │   ├── alternatives                      # Cloned repos (gitignored)
 │   └── results                           # Benchmark results (gitignored)
 ├── CLAUDE.md                             # AI assistant guidelines
