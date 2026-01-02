@@ -15,27 +15,10 @@ TOOLS = {
         "setup": ["python3", "-m", "venv", ".venv"],
         "install": [".venv/bin/pip", "install", "-q", "-r", "requirements.txt"],
     },
-    "xml2db-csharp": {
-        "repo": "https://github.com/philipmat/discogs-xml2db.git",
-        "check": "dotnet",
-        "build": ["dotnet", "build", "-c", "Release", "--verbosity", "quiet"],
-        "build_dir": "alternatives/dotnet",
-    },
-    "dgtools": {
-        "repo": "https://github.com/marcw/dgtools.git",
-        "check": "go",
-        "build": ["go", "build", "-o", "dgtools", "."],
-    },
-    "discogs-load": {
-        "repo": "https://github.com/DylanBartels/discogs-load.git",
-        "check": "cargo",
-        "build": ["cargo", "build", "--release", "--quiet"],
-    },
-    "discogs-batch": {
-        "repo": "https://github.com/echovisionlab/discogs-batch.git",
-        "check": "java",
-        "build": ["./gradlew", "build", "-x", "test", "--quiet"],
-    },
+    # xml2db-csharp removed: requires specific .NET version
+    # dgtools removed: crashes on gzipped files
+    # discogs-load removed: outdated deps don't compile with modern Rust
+    # discogs-batch removed: requires Java + compatible Gradle
 }
 
 

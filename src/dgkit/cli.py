@@ -276,7 +276,9 @@ def sample_cmd(
     # Build output path
     if output is None:
         output_path = build_sample_path(file, count)
-    elif output.is_dir():
+    elif output.is_dir() or str(output).endswith("/"):
+        # Treat as directory - create if needed
+        output.mkdir(parents=True, exist_ok=True)
         output_path = output / build_sample_path(file, count)
     else:
         output_path = output
