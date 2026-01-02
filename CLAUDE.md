@@ -13,3 +13,4 @@ Available resources:
 - [Development](./docs/agent/development.md): Setup, commands, and workflow
 - [Automated Tests](./docs/agent/automated-tests.md): Test structure and fixtures
 - [Decision Log](./docs/agent/decision-log.md): Past architectural decisions
+- [Benchmarking](./docs/agent/benchmarking.md): Methodology and findings for performance comparisons

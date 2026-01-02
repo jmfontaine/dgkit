@@ -33,6 +33,7 @@ cog.out("```text\n{}```".format(result.output))
 ╭─ Commands ───────────────────────────────────────────────────────────────────────────╮
 │ convert   Convert data dumps to another format.                                      │
 │ load      Load data dumps into a database.                                           │
+│ sample    Extract a sample from a Discogs data dump.                                 │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
 ```

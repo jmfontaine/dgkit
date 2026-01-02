@@ -1,4 +1,5 @@
 import sys
+import time
 import types
 from pathlib import Path
 from typing import Annotated
@@ -12,9 +13,11 @@ from dgkit.pipeline import (
     build_database_path,
     build_output_path,
     convert,
+    create_progress_elements,
     load,
 )
-from dgkit.summary import Summary
+from dgkit.sampler import build_sample_path, sample
+from dgkit.summary import Summary, _format_duration
 from dgkit.types import Compression, DatabaseType, FileFormat
 
 # Global debug flag
@@ -229,3 +232,63 @@ def load_cmd(
     )
     if result:
         display_result(result)
+
+
+@app.command(name="sample", help="Extract a sample from a Discogs data dump.")
+def sample_cmd(
+    file: Annotated[Path, typer.Argument(help="Discogs dump file.")],
+    count: Annotated[
+        int, typer.Option("--count", "-n", help="Number of elements to extract.")
+    ] = 1_000_000,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Output file path.")
+    ] = None,
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", "-w", help="Overwrite existing file.")
+    ] = False,
+    progress: Annotated[
+        bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
+    ] = True,
+) -> None:
+    if not file.is_file():
+        raise typer.BadParameter(f"File not found: {file}")
+
+    # Build output path
+    if output is None:
+        output_path = build_sample_path(file, count)
+    elif output.is_dir():
+        output_path = output / build_sample_path(file, count)
+    else:
+        output_path = output
+
+    # Check for existing output file
+    if output_path.exists() and not overwrite:
+        typer.echo(f"File already exists: {output_path}")
+        if not typer.confirm("Overwrite?"):
+            raise typer.Abort()
+
+    start_time = time.perf_counter()
+
+    # Set up progress bar
+    if progress:
+        with create_progress_elements() as progress_bar:
+            task_id = progress_bar.add_task("Sampling", total=count)
+
+            def on_progress() -> None:
+                progress_bar.advance(task_id)
+
+            written = sample(file, output_path, count, on_progress=on_progress)
+    else:
+        written = sample(file, output_path, count)
+
+    elapsed = time.perf_counter() - start_time
+    rate = written / elapsed if elapsed > 0 else 0
+
+    summary_text = "\n".join(
+        [
+            f"Time:    {_format_duration(elapsed)} ({rate:,.0f} elements/sec)",
+            f"Written: {written:,}",
+            f"Output:  {output_path}",
+        ]
+    )
+    _console.print(Panel(summary_text, title="Summary", border_style="green"))
