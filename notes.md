@@ -8,8 +8,8 @@
 ## Improvements
 
 - The `convert` and `load` commands should accept a `--read-chunk-size` option that takes a number of bytes to tweak how much is read from the input file at a time. It should default to 1MB.
-- We should have a `benchmark` command that instruments the code and provides helpful insights to tweak the options to get the best performance for the current system. Or should it be an option on the `convert` and `load` command? The idea behind this is that users will likely convert/load the new dumps every month so being able to tweak it to get the best performance could be help ful, It would alo help me improve the performance, spot regressions, and improve the heuristics I want to introduce to provide fast defaults on most systems.
-- I want the database schemas to be stored as SQL files alongside the source code fo easier review and updates. Table creation, and primary/foreign keys and indices should be in separate files.
+- We should have a `benchmark` command that instruments the code and provides helpful insights to tweak the options to get the best performance for the current system. Or should it be an option on the `convert` and `load` command? The idea behind this is that users will likely convert/load the new dumps every month so being able to tweak it to get the best performance could be help full, It would also help me improve the performance, spot regressions, and improve the heuristics I want to introduce to provide fast defaults on most systems.
+- I want the database schemas to be stored as SQL files alongside the source code for easier review and updates. Table creation, and primary/foreign keys and indices should be in separate files.
 - The database writer should create primary/foreign keys and indices after the tables have been created and data inserted.
 - Add a `--batch-size, -b` to the `convert` and `load` commands to set the number of the records to write at once. Default to 10,000.
 - The `inspect` command should provide meaningful information about the files. We might want to provide an option to inspect the records in the files but it should be disabled by default because it would take much longer. Maybe the Console writer should be part of that command.
@@ -41,7 +41,7 @@
 - The parsers should not yield multiple record types. Each entity type should be a single record. It is up to the writers to split that record into multiple records if required by the destination. Splitting records up at the parser level means that writers that can handle records with nested data have to merge the records back.
 - Maybe the SQLite writer should not use `--dsn` but `--path`.
 - How to best provide various levels of information to the user about operations?
-- How to check if the XML element has nodes or attributes we did not extract to the model? I want to make sure that the model represents the raw XML data accurately. Discogs data can be weird at times so I would like to have a way to catch unhandled edge cases. I am afraid it would hurt performance so it might have to be an option that is disabled by default. Maybe `--paranoia` or `--throrough`.
+- How to check if the XML element has nodes or attributes we did not extract to the model? I want to make sure that the model represents the raw XML data accurately. Discogs data can be weird at times so I would like to have a way to catch unhandled edge cases. I am afraid it would hurt performance so it might have to be an option that is disabled by default. Maybe `--paranoia` or `--thorough`.
 - How to handle property values that are actually enums in disguise? For example the `dataquality` property has a small fixed number of values. Storing them as string is a waste of space.
 - Should we have logging? Maybe for debugging or tracking performance?
 - Will users really import input files independently or should we always process all of them? Could they only care in a single entity type (e.g., artists)? Would that even make sense? Should the default behavior be to process all files, unless an option is passed to ignored some of them?
@@ -65,12 +65,12 @@
 - Run linters
 - Test UX
 
+- Benchmark against alternatives
 - Review code
 - Update tests
 - Enable dependable.
 - Create QA pipeline
 - Create publish pipeline
-- Benchmark against alternatives
 - Create CLAUDE.md file
 - Add a nice screenshot to the top of the READE file (see <https://github.com/chaosprint/hindsight>).
 - Package release
