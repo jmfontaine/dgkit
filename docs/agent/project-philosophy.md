@@ -1,5 +1,20 @@
 # Project Philosophy
 
+## Guiding Principles
+
+- Incremental progress over big bangs: Make small changes that run and pass tests.
+- Learning from existing code: Study and plan before implementing.
+- Pragmatic over dogmatic: Adapt to the project's reality.
+- Clear intent over clever code: Be boring and obvious.
+
+## Simplicity
+
+- Don't add features speculatively.
+- Add complexity only when there's a demonstrated need.
+- Keep a single responsibility per class, function, and method.
+- Avoid premature abstractions.
+- No clever tricks. If you need to explain it, it's too complex.
+
 ## Provide Great User Experience
 
 - Provide meaningful and helpful guidance to the user.
@@ -26,8 +41,3 @@
 - No magic auto-discovery of files. Users specify exactly what they want to process.
 - Shell globs provide flexibility without adding framework complexity.
 - Unix-like composability: do one thing well, let users combine tools.
-
-## YAGNI (You Aren't Gonna Need It)
-
-- Do not add features speculatively.
-- Add complexity only when there's a demonstrated need.

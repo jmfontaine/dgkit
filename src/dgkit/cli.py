@@ -141,13 +141,13 @@ def convert_cmd(
 
     filters = build_filters(drop_if, unset)
     result = convert(
-        format,
-        files,
         compression=compress,
         fail_on_unhandled=strict_fail,
         filters=filters,
+        format=format,
         limit=limit,
         output_dir=output_dir,
+        paths=files,
         show_progress=progress,
         show_summary=summary,
         strict=strict,

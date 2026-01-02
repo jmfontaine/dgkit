@@ -262,6 +262,7 @@ def build_database_path(paths: list[Path], output_dir: Path) -> Path:
 
 
 def convert(
+    *,
     format: FileFormat,
     paths: list[Path],
     compression: Compression = Compression.none,
