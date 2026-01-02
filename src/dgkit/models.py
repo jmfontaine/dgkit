@@ -1,45 +1,50 @@
-from typing import NamedTuple
+from dataclasses import dataclass, field
 
 
-class ArtistRef(NamedTuple):
+@dataclass(slots=True)
+class ArtistRef:
     """Reference to another artist (used for aliases, members, groups)."""
 
     id: int
     name: str
 
 
-class Artist(NamedTuple):
+@dataclass(slots=True)
+class Artist:
     id: int
     data_quality: str | None
     name: str | None
     profile: str | None
     real_name: str | None
-    aliases: list[ArtistRef] = []
-    groups: list[ArtistRef] = []
-    members: list[ArtistRef] = []
-    name_variations: list[str] = []
-    urls: list[str] = []
+    aliases: list[ArtistRef] = field(default_factory=list)
+    groups: list[ArtistRef] = field(default_factory=list)
+    members: list[ArtistRef] = field(default_factory=list)
+    name_variations: list[str] = field(default_factory=list)
+    urls: list[str] = field(default_factory=list)
 
 
-class LabelRef(NamedTuple):
+@dataclass(slots=True)
+class LabelRef:
     """Reference to another label (used for sub_labels, parent_label)."""
 
     id: int
     name: str
 
 
-class Label(NamedTuple):
+@dataclass(slots=True)
+class Label:
     id: int
     contact_info: str | None
     data_quality: str | None
     name: str | None
     profile: str | None
     parent_label: LabelRef | None = None
-    sub_labels: list[LabelRef] = []
-    urls: list[str] = []
+    sub_labels: list[LabelRef] = field(default_factory=list)
+    urls: list[str] = field(default_factory=list)
 
 
-class CreditArtist(NamedTuple):
+@dataclass(slots=True)
+class CreditArtist:
     """Artist credit on a release or master."""
 
     id: int
@@ -48,7 +53,8 @@ class CreditArtist(NamedTuple):
     name: str
 
 
-class ExtraArtist(NamedTuple):
+@dataclass(slots=True)
+class ExtraArtist:
     """Extra artist credit with role (producer, engineer, etc.)."""
 
     id: int | None
@@ -58,7 +64,8 @@ class ExtraArtist(NamedTuple):
     tracks: str | None
 
 
-class ReleaseLabel(NamedTuple):
+@dataclass(slots=True)
+class ReleaseLabel:
     """Label credit on a release."""
 
     id: int
@@ -66,37 +73,41 @@ class ReleaseLabel(NamedTuple):
     name: str
 
 
-class Format(NamedTuple):
+@dataclass(slots=True)
+class Format:
     """Physical format of a release."""
 
     name: str
     quantity: int
     text: str | None
-    descriptions: list[str] = []
+    descriptions: list[str] = field(default_factory=list)
 
 
-class SubTrack(NamedTuple):
+@dataclass(slots=True)
+class SubTrack:
     """Sub-track within a track (movements, sections)."""
 
     duration: str | None
     position: str | None
     title: str | None
-    artists: list[CreditArtist] = []
-    extra_artists: list[ExtraArtist] = []
+    artists: list[CreditArtist] = field(default_factory=list)
+    extra_artists: list[ExtraArtist] = field(default_factory=list)
 
 
-class Track(NamedTuple):
+@dataclass(slots=True)
+class Track:
     """Track on a release."""
 
     duration: str | None
     position: str | None
     title: str | None
-    artists: list[CreditArtist] = []
-    extra_artists: list[ExtraArtist] = []
-    sub_tracks: list[SubTrack] = []
+    artists: list[CreditArtist] = field(default_factory=list)
+    extra_artists: list[ExtraArtist] = field(default_factory=list)
+    sub_tracks: list[SubTrack] = field(default_factory=list)
 
 
-class Identifier(NamedTuple):
+@dataclass(slots=True)
+class Identifier:
     """Identifier like barcode, matrix, etc."""
 
     description: str | None
@@ -104,7 +115,8 @@ class Identifier(NamedTuple):
     value: str
 
 
-class Company(NamedTuple):
+@dataclass(slots=True)
+class Company:
     """Company credit on a release."""
 
     id: int
@@ -114,7 +126,8 @@ class Company(NamedTuple):
     name: str
 
 
-class Series(NamedTuple):
+@dataclass(slots=True)
+class Series:
     """Series a release belongs to."""
 
     id: int
@@ -122,7 +135,8 @@ class Series(NamedTuple):
     name: str
 
 
-class Video(NamedTuple):
+@dataclass(slots=True)
+class Video:
     """Video associated with a master release."""
 
     description: str | None
@@ -132,20 +146,22 @@ class Video(NamedTuple):
     title: str | None
 
 
-class MasterRelease(NamedTuple):
+@dataclass(slots=True)
+class MasterRelease:
     id: int
     data_quality: str | None
     main_release: int | None
     notes: str | None
     title: str | None
     year: int | None
-    artists: list[CreditArtist] = []
-    genres: list[str] = []
-    styles: list[str] = []
-    videos: list[Video] = []
+    artists: list[CreditArtist] = field(default_factory=list)
+    genres: list[str] = field(default_factory=list)
+    styles: list[str] = field(default_factory=list)
+    videos: list[Video] = field(default_factory=list)
 
 
-class Release(NamedTuple):
+@dataclass(slots=True)
+class Release:
     id: int
     country: str | None
     data_quality: str | None
@@ -155,14 +171,14 @@ class Release(NamedTuple):
     released: str | None
     status: str | None
     title: str | None
-    artists: list[CreditArtist] = []
-    companies: list[Company] = []
-    extra_artists: list[ExtraArtist] = []
-    formats: list[Format] = []
-    genres: list[str] = []
-    identifiers: list[Identifier] = []
-    labels: list[ReleaseLabel] = []
-    series: list[Series] = []
-    styles: list[str] = []
-    tracklist: list[Track] = []
-    videos: list[Video] = []
+    artists: list[CreditArtist] = field(default_factory=list)
+    companies: list[Company] = field(default_factory=list)
+    extra_artists: list[ExtraArtist] = field(default_factory=list)
+    formats: list[Format] = field(default_factory=list)
+    genres: list[str] = field(default_factory=list)
+    identifiers: list[Identifier] = field(default_factory=list)
+    labels: list[ReleaseLabel] = field(default_factory=list)
+    series: list[Series] = field(default_factory=list)
+    styles: list[str] = field(default_factory=list)
+    tracklist: list[Track] = field(default_factory=list)
+    videos: list[Video] = field(default_factory=list)

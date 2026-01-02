@@ -5,6 +5,7 @@ import re
 import sqlite3
 import types
 
+from dataclasses import asdict, astuple, fields, is_dataclass
 from importlib.resources import files
 from pathlib import Path
 from typing import (
@@ -12,10 +13,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     LiteralString,
-    NamedTuple,
     Protocol,
     Self,
-    TypeGuard,
     cast,
     get_args,
     get_origin,
@@ -39,21 +38,26 @@ def _get_list_element_type(field_type: type) -> type | None:
     return None
 
 
-class _NamedTupleType(Protocol):
-    """Protocol for NamedTuple class types (not instances)."""
+class _DataclassType(Protocol):
+    """Protocol for dataclass class types (not instances)."""
 
-    _fields: tuple[str, ...]
+    __dataclass_fields__: dict[str, Any]
     __annotations__: dict[str, type]
 
 
-def _is_namedtuple(cls: type) -> TypeGuard[_NamedTupleType]:
-    """Check if a class is a NamedTuple."""
-    return (
-        isinstance(cls, type)
-        and issubclass(cls, tuple)
-        and hasattr(cls, "_fields")
-        and hasattr(cls, "_asdict")
-    )
+def _get_field_names(record: Any) -> list[str]:
+    """Get field names from a dataclass instance or type."""
+    return [f.name for f in fields(record)]
+
+
+def _get_field_value(record: Any, field_name: str) -> Any:
+    """Get field value from a dataclass instance."""
+    return getattr(record, field_name)
+
+
+def _get_type_field_names(cls: type) -> list[str]:
+    """Get field names from a dataclass type."""
+    return [f.name for f in fields(cls)]
 
 
 def _singularize(name: str) -> str:
@@ -174,7 +178,7 @@ class BlackholeWriter:
     ) -> None:
         pass
 
-    def write(self, record: NamedTuple) -> None:
+    def write(self, record: Any) -> None:
         pass
 
 
@@ -197,7 +201,7 @@ class ConsoleWriter:
     ) -> None:
         pass
 
-    def write(self, record: NamedTuple) -> None:
+    def write(self, record: Any) -> None:
         from rich import print
 
         print(record)
@@ -230,12 +234,12 @@ class JsonWriter:
             self._fp.write("\n]\n")
             self._fp.close()
 
-    def write(self, record: NamedTuple) -> None:
+    def write(self, record: Any) -> None:
         if self._fp:
             if not self._first:
                 self._fp.write(",\n")
             self._first = False
-            self._fp.write(json.dumps(record._asdict()))
+            self._fp.write(json.dumps(asdict(record)))
 
 
 class JsonlWriter:
@@ -261,9 +265,9 @@ class JsonlWriter:
         if self._fp:
             self._fp.close()
 
-    def write(self, record: NamedTuple) -> None:
+    def write(self, record: Any) -> None:
         if self._fp:
-            self._fp.write(json.dumps(record._asdict()) + "\n")
+            self._fp.write(json.dumps(asdict(record)) + "\n")
 
 
 SQLITE_TYPE_MAP: dict[type, str] = {
@@ -314,7 +318,7 @@ class SqliteWriter:
             self._conn.commit()
             self._conn.close()
 
-    def _ensure_table(self, record: NamedTuple) -> str:
+    def _ensure_table(self, record: Any) -> str:
         """Create table for record type if it doesn't exist."""
         table_name = type(record).__name__.lower()
         if table_name in self._tables:
@@ -323,12 +327,10 @@ class SqliteWriter:
         annotations = type(record).__annotations__
         junction_fields: set[str] = set()
 
-        # Identify junction table fields (list[int] or list[NamedTuple])
+        # Identify junction table fields (list[int] or list[dataclass])
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is not None and (
-                elem_type is int or _is_namedtuple(elem_type)
-            ):
+            if elem_type is not None and (elem_type is int or is_dataclass(elem_type)):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
                 self._junction_tables[(table_name, field)] = (junction_table, elem_type)
@@ -345,20 +347,20 @@ class SqliteWriter:
             self._conn.execute(sql)
         else:
             # Fall back to dynamic schema generation (excluding junction fields)
-            fields = record._fields
+            field_names = _get_field_names(record)
             columns = []
-            for i, field in enumerate(fields):
-                if field in junction_fields:
+            for i, field_name in enumerate(field_names):
+                if field_name in junction_fields:
                     continue
-                field_type = annotations.get(field, str)
+                field_type = annotations.get(field_name, str)
                 if hasattr(field_type, "__origin__"):
                     args = getattr(field_type, "__args__", ())
                     field_type = next((t for t in args if t is not type(None)), str)
                 sqlite_type = SQLITE_TYPE_MAP.get(field_type, "TEXT")
                 if i == 0 and sqlite_type == "INTEGER":
-                    columns.append(f"{field} INTEGER PRIMARY KEY")
+                    columns.append(f"{field_name} INTEGER PRIMARY KEY")
                 else:
-                    columns.append(f"{field} {sqlite_type}")
+                    columns.append(f"{field_name} {sqlite_type}")
             self._conn.execute(f"CREATE TABLE {table_name} ({', '.join(columns)})")
 
         self._tables.add(table_name)
@@ -382,8 +384,8 @@ class SqliteWriter:
                     f"{ref_col} INTEGER NOT NULL, "
                     f"PRIMARY KEY ({fk_col}, {ref_col}))"
                 )
-            elif _is_namedtuple(elem_type):
-                # NamedTuple junction table: {table}_id + elem fields
+            elif is_dataclass(elem_type):
+                # Dataclass junction table: {table}_id + elem fields
                 fk_col = f"{table_name}_id"
                 elem_annotations = elem_type.__annotations__
                 columns = [f"{fk_col} INTEGER NOT NULL"]
@@ -430,18 +432,22 @@ class SqliteWriter:
         for table_name in self._buffers:
             self._flush(table_name)
 
-    def write(self, record: NamedTuple) -> None:
+    def write(self, record: Any) -> None:
         if not self._conn:
             return
         table_name = self._ensure_table(record)
         junction_fields = self._junction_fields.get(table_name, set())
-        record_id = record[0]  # Assume first field is the ID
+        field_names = _get_field_names(record)
+        record_id = _get_field_value(
+            record, field_names[0]
+        )  # Assume first field is the ID
 
         # Build main table values (excluding junction fields, serialize lists/tuples as JSON)
         main_values: list[Any] = []
-        for field, value in zip(record._fields, record):
-            if field in junction_fields:
+        for field_name in field_names:
+            if field_name in junction_fields:
                 continue
+            value = _get_field_value(record, field_name)
             if isinstance(value, (list, tuple)):
                 main_values.append(json.dumps(value))
             else:
@@ -454,14 +460,15 @@ class SqliteWriter:
         # Insert junction table entries
         for field in junction_fields:
             junction_table, elem_type = self._junction_tables[(table_name, field)]
-            field_idx = record._fields.index(field)
-            values = record[field_idx]
+            values = _get_field_value(record, field)
             if values:
                 for item in values:
                     if elem_type is int:
                         self._buffers[junction_table].append((record_id, item))
-                    elif _is_namedtuple(elem_type):
-                        self._buffers[junction_table].append((record_id, *item))
+                    elif is_dataclass(elem_type):
+                        self._buffers[junction_table].append(
+                            (record_id, *astuple(item))
+                        )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
 
@@ -509,7 +516,7 @@ class PostgresWriter:
             self._conn.commit()
             self._conn.close()
 
-    def _ensure_table(self, record: NamedTuple) -> str:
+    def _ensure_table(self, record: Any) -> str:
         """Create table for record type if it doesn't exist."""
         assert self._conn is not None, "Connection must exist in _ensure_table"
         conn = self._conn
@@ -523,9 +530,7 @@ class PostgresWriter:
 
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
-            if elem_type is not None and (
-                elem_type is int or _is_namedtuple(elem_type)
-            ):
+            if elem_type is not None and (elem_type is int or is_dataclass(elem_type)):
                 junction_fields.add(field)
                 junction_table = f"{table_name}_{_singularize(field)}"
                 self._junction_tables[(table_name, field)] = (junction_table, elem_type)
@@ -539,7 +544,8 @@ class PostgresWriter:
         )
 
         # Track column names for COPY (excluding junction fields)
-        column_names = [f for f in record._fields if f not in junction_fields]
+        all_field_names = _get_field_names(record)
+        column_names = [f for f in all_field_names if f not in junction_fields]
         self._table_columns[table_name] = column_names
 
         schema_sql = _load_sql("postgresql", "tables", table_name)
@@ -548,10 +554,10 @@ class PostgresWriter:
             conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
         else:
             col_defs: list[pgsql.Composable] = []
-            for i, field in enumerate(record._fields):
-                if field in junction_fields:
+            for i, field_name in enumerate(all_field_names):
+                if field_name in junction_fields:
                     continue
-                field_type = annotations.get(field, str)
+                field_type = annotations.get(field_name, str)
                 if hasattr(field_type, "__origin__"):
                     args = getattr(field_type, "__args__", ())
                     field_type = next((t for t in args if t is not type(None)), str)
@@ -559,12 +565,12 @@ class PostgresWriter:
                 if i == 0 and pg_type == "BIGINT":
                     col_defs.append(
                         pgsql.SQL("{} BIGINT PRIMARY KEY").format(
-                            pgsql.Identifier(field)
+                            pgsql.Identifier(field_name)
                         )
                     )
                 else:
                     col_defs.append(
-                        pgsql.SQL("{} ").format(pgsql.Identifier(field))
+                        pgsql.SQL("{} ").format(pgsql.Identifier(field_name))
                         + pgsql.SQL(cast(LiteralString, pg_type))
                     )
             conn.execute(
@@ -588,9 +594,8 @@ class PostgresWriter:
             if elem_type is int:
                 ref_col = f"{_singularize(field)}_id"
                 junction_columns = [fk_col, ref_col]
-            elif _is_namedtuple(elem_type):
-                nt_type = cast(_NamedTupleType, elem_type)
-                junction_columns = [fk_col] + list(nt_type._fields)
+            elif is_dataclass(elem_type):
+                junction_columns = [fk_col] + _get_type_field_names(elem_type)
             else:
                 junction_columns = [fk_col]
             self._table_columns[junction_table] = junction_columns
@@ -615,12 +620,11 @@ class PostgresWriter:
                         pgsql.Identifier(ref_col),
                     )
                 )
-            elif _is_namedtuple(elem_type):
-                nt_type = cast(_NamedTupleType, elem_type)
+            elif is_dataclass(elem_type):
                 col_defs: list[pgsql.Composable] = [
                     pgsql.SQL("{} BIGINT NOT NULL").format(pgsql.Identifier(fk_col))
                 ]
-                for elem_field, elem_field_type in nt_type.__annotations__.items():
+                for elem_field, elem_field_type in elem_type.__annotations__.items():
                     pg_type = POSTGRES_TYPE_MAP.get(elem_field_type, "TEXT")
                     col_defs.append(
                         pgsql.SQL("{} ").format(pgsql.Identifier(elem_field))
@@ -681,17 +685,19 @@ class PostgresWriter:
         for table_name in self._buffers:
             self._flush(table_name)
 
-    def write(self, record: NamedTuple) -> None:
+    def write(self, record: Any) -> None:
         if not self._conn:
             return
         table_name = self._ensure_table(record)
         junction_fields = self._junction_fields.get(table_name, set())
-        record_id = record[0]
+        field_names = _get_field_names(record)
+        record_id = _get_field_value(record, field_names[0])
 
         main_values: list[Any] = []
-        for field, value in zip(record._fields, record):
-            if field in junction_fields:
+        for field_name in field_names:
+            if field_name in junction_fields:
                 continue
+            value = _get_field_value(record, field_name)
             if isinstance(value, (list, tuple)):
                 main_values.append(json.dumps(value))
             else:
@@ -703,14 +709,15 @@ class PostgresWriter:
 
         for field in junction_fields:
             junction_table, elem_type = self._junction_tables[(table_name, field)]
-            field_idx = record._fields.index(field)
-            values = record[field_idx]
+            values = _get_field_value(record, field)
             if values:
                 for item in values:
                     if elem_type is int:
                         self._buffers[junction_table].append((record_id, item))
-                    elif _is_namedtuple(elem_type):
-                        self._buffers[junction_table].append((record_id, *item))
+                    elif is_dataclass(elem_type):
+                        self._buffers[junction_table].append(
+                            (record_id, *astuple(item))
+                        )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
 

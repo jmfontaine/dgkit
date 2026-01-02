@@ -11,7 +11,8 @@ Filter expression grammar (BNF):
     value       ::= string | number | 'true' | 'false' | 'null'
 """
 
-from typing import Any, NamedTuple, Protocol, cast
+from dataclasses import replace
+from typing import Any, Protocol
 
 import pyparsing as pp
 
@@ -22,7 +23,7 @@ pp.ParserElement.enable_packrat()
 class Filter(Protocol):
     """Protocol for record filters."""
 
-    def __call__(self, record: NamedTuple) -> NamedTuple | None:
+    def __call__(self, record: Any) -> Any | None:
         """Return modified record, or None to drop it."""
         ...
 
@@ -82,7 +83,7 @@ _PARSER = _build_parser()
 # --- Comparison Evaluators ---
 
 
-def _get_field_value(record: NamedTuple, field: str) -> Any:
+def _get_field_value(record: Any, field: str) -> Any:
     """Get field value from record, supporting dot notation."""
     value: Any = record
     for part in field.split("."):
@@ -127,7 +128,7 @@ def _compare(field_value: Any, op: str, target_value: Any) -> bool:
         return False
 
 
-def _evaluate(parsed: Any, record: NamedTuple) -> bool:
+def _evaluate(parsed: Any, record: Any) -> bool:
     """Recursively evaluate parsed expression against record."""
     # Handle AND/OR tuples from infix_notation parse actions
     if isinstance(parsed, tuple) and len(parsed) == 2:
@@ -160,7 +161,7 @@ class ExpressionFilter:
         self.expression = expression
         self._parsed = _PARSER.parse_string(expression, parse_all=True)
 
-    def __call__(self, record: NamedTuple) -> NamedTuple | None:
+    def __call__(self, record: Any) -> Any | None:
         if _evaluate(self._parsed, record):
             return None  # Drop matching records
         return record
@@ -172,11 +173,11 @@ class UnsetFields:
     def __init__(self, fields: list[str]) -> None:
         self.fields = set(fields)
 
-    def __call__(self, record: NamedTuple) -> NamedTuple | None:
+    def __call__(self, record: Any) -> Any | None:
         if not self.fields:
             return record
         updates = {f: None for f in self.fields if hasattr(record, f)}
-        return cast(NamedTuple, record._replace(**updates)) if updates else record
+        return replace(record, **updates) if updates else record
 
 
 class FilterChain:
@@ -185,7 +186,7 @@ class FilterChain:
     def __init__(self, filters: list[Filter]) -> None:
         self.filters = filters
 
-    def __call__(self, record: NamedTuple) -> NamedTuple | None:
+    def __call__(self, record: Any) -> Any | None:
         for f in self.filters:
             result = f(record)
             if result is None:
