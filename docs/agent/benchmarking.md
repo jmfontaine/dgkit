@@ -2,6 +2,58 @@
 
 Guidelines for benchmarking dgkit against alternatives.
 
+## Quick Start
+
+```shell
+# One-time setup of alternative tools
+just bench-setup
+
+# Run benchmark comparison (default: 1M releases sample)
+just bench
+
+# Benchmark specific sample
+just bench samples/discogs_20260101_artists_sample_1000000.xml.gz
+```
+
+See `benchmarks/README.md` for detailed setup and requirements.
+
+## Profiling
+
+Profile dgkit to identify bottlenecks:
+
+```python
+import cProfile
+import pstats
+from pathlib import Path
+from dgkit.pipeline import convert
+from dgkit.types import FileFormat
+
+with cProfile.Profile() as pr:
+    convert(
+        paths=[Path("samples/discogs_20260101_releases_sample_1000000.xml.gz")],
+        format=FileFormat.blackhole,
+        show_progress=False,
+        show_summary=False,
+    )
+
+stats = pstats.Stats(pr)
+stats.sort_stats("cumulative")
+stats.print_stats(20)
+```
+
+Key functions to watch:
+
+- `ReleaseParser.parse()` - main parsing entry point
+- `_parse_tracks()` - tracklist parsing (high call volume)
+- `_parse_credit_artists()` / `_parse_extra_artists()` - called millions of times
+
+## Performance Principles
+
+1. **Single iteration** - Iterate over XML children once, dispatch by tag. Avoid multiple `findtext()`/`find()` calls on the same element.
+2. **Memory efficiency** - Clear parsed elements after processing to avoid memory buildup during streaming.
+3. **Minimize allocations** - Reuse data structures where possible. NamedTuples are efficient.
+4. **Profile before optimizing** - Use cProfile to identify actual bottlenecks.
+
 ## Alternatives
 
 | Tool | Language | Database | Source |

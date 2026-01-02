@@ -6,6 +6,12 @@
 ├── .markdownlint-cli2.jsonc              # Markdown linting configuration
 ├── .pre-commit-config.yaml               # Pre-commit hooks configuration
 ├── .python-version                       # Python version for uv
+├── benchmarks
+│   ├── README.md                         # Benchmark documentation
+│   ├── setup.sh                          # Install alternative tools
+│   ├── run.sh                            # Run benchmark comparison
+│   ├── alternatives                      # Cloned repos (gitignored)
+│   └── results                           # Benchmark results (gitignored)
 ├── CLAUDE.md                             # AI assistant guidelines
 ├── docs/agent                            # AI assistant documentation (see CLAUDE.md)
 ├── justfile                              # Task runner commands (just)

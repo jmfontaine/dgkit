@@ -5,4 +5,5 @@ __pycache__
 /.venv
 /dist
 /samples
-/benchmarks
+/benchmarks/alternatives
+/benchmarks/results

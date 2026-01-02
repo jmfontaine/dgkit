@@ -66,3 +66,11 @@ test *args:
 # Type check source code
 typecheck:
     ty check
+
+# Set up benchmark alternatives
+bench-setup:
+    ./benchmarks/setup.sh
+
+# Run benchmarks against alternatives
+bench *args:
+    ./benchmarks/run.sh {{ args }}
