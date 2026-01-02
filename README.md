@@ -15,9 +15,9 @@ from dgkit.cli import app
 
 runner = CliRunner()
 result = runner.invoke(app, ["--help"], prog_name="dgkit", env={"COLUMNS": "88"})
-cog.out("```\n{}```".format(result.output))
+cog.out("```text\n{}```".format(result.output))
 ]]] -->
-```
+```text
                                                                                         
  Usage: dgkit [OPTIONS] COMMAND [ARGS]...                                               
                                                                                         
@@ -52,9 +52,9 @@ Convert Discogs data dumps to various formats. Supports filtering records, limit
 
 <!-- [[[cog
 result = runner.invoke(app, ["convert", "--help"], prog_name="dgkit", env={"COLUMNS": "88"})
-cog.out("```\n{}```".format(result.output))
+cog.out("```text\n{}```".format(result.output))
 ]]] -->
-```
+```text
                                                                                         
  Usage: dgkit convert [OPTIONS] FILES...                                                
                                                                                         
@@ -177,9 +177,9 @@ Load Discogs data dumps directly into a database. Supports batched inserts, filt
 
 <!-- [[[cog
 result = runner.invoke(app, ["load", "--help"], prog_name="dgkit", env={"COLUMNS": "88"})
-cog.out("```\n{}```".format(result.output))
+cog.out("```text\n{}```".format(result.output))
 ]]] -->
-```
+```text
                                                                                         
  Usage: dgkit load [OPTIONS] FILES...                                                   
                                                                                         

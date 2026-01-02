@@ -3,6 +3,8 @@
   "config": {
     // Line length - disabled as prose naturally wraps
     "MD013": false,
+    // Allow duplicate headings under different parents (e.g., "Examples" per command)
+    "MD024": { "siblings_only": true },
     // Allow inline HTML for advanced formatting
     "MD033": false,
     // First line heading - disabled for files like CLAUDE.md

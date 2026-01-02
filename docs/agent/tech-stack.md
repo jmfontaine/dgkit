@@ -2,8 +2,7 @@
 
 ## Python
 
-- dgkit aims at being compatible with all [supported Python versions](https://devguide.python.org/versions/).
-- When possible, dgkit supports older unsupported versions as long as it does not negatively impact the maintainability of the project or hurt the performance and user experience for supported versions.
+Targets all [supported Python versions](https://devguide.python.org/versions/). Older versions may be supported if they don't complicate maintenance.
 
 ## Dependencies
 
@@ -14,6 +13,7 @@
 
 ## Formatting and Linting
 
+- markdownlint-cli2: Markdown linting
 - pyproject-fmt: pyproject.toml formatting
 - ruff: Python linting and formatting
 - sqlfluff: SQL linting

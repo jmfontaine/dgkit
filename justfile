@@ -18,7 +18,7 @@ clean:
 
 # Regenerate README with cog
 docs:
-    uv run cog -r README.md
+    cog -r README.md
 
 # Format source code
 format:
@@ -28,11 +28,13 @@ format:
 
 # Fix fixable source code defects
 fix:
+    cog -r README.md            # Regenerate README.md
     ruff check --fix            # Python files
     sqlfluff fix src/dgkit/sql  # SQL files
 
 # Check source code for defects
 lint:
+    cog --check README.md                 # README.md is up to date
     ruff format --check                   # Python files formatting
     ruff check                            # Python files linting
     pyproject-fmt --check pyproject.toml  # pyproject.toml formatting
