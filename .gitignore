@@ -1,9 +1,13 @@
+*.egg-info
+*.so
 __pycache__
 /.coverage
+/.mypy_cache
 /.pytest_cache
 /.ruff_cache
 /.venv
 /benchmarks/alternatives
 /benchmarks/results
+/build
 /dist
 /samples

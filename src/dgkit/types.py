@@ -3,7 +3,7 @@ import types
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import IO, Iterator, NamedTuple, Protocol, Self, runtime_checkable
+from typing import IO, Any, Iterator, Protocol, Self, runtime_checkable
 
 
 @runtime_checkable
@@ -51,7 +51,7 @@ class Parser(Protocol):
 
     tag: str
 
-    def parse(self, elem: Element) -> Iterator[NamedTuple]: ...
+    def parse(self, elem: Element) -> Iterator[Any]: ...
 
 
 class Reader(Protocol):
@@ -79,4 +79,4 @@ class Writer(Protocol):
         exc_val: BaseException | None,
         exc_tb: types.TracebackType | None,
     ) -> None: ...
-    def write(self, record: NamedTuple) -> None: ...
+    def write(self, record: Any) -> None: ...

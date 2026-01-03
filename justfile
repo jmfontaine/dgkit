@@ -10,6 +10,22 @@ _list:
 bench *args:
     python benchmarks/run.py {{ args }}
 
+# Run benchmarks with mypyc-compiled extension
+bench-compiled *args:
+    #!/usr/bin/env bash
+    set -e
+    just compile
+    python benchmarks/run.py {{ args }} || true
+    just compile-clean
+
+# Build mypyc-compiled extension
+compile:
+    mypyc src/dgkit/parsers.py
+
+# Remove mypyc-compiled extension
+compile-clean:
+    rm -f src/dgkit/parsers*.so
+
 # Set up benchmark
 bench-setup:
     python benchmarks/setup.py
