@@ -18,13 +18,13 @@ bench-compiled *args:
     python benchmarks/run.py {{ args }} || true
     just compile-clean
 
-# Build mypyc-compiled extension
+# Build Cython-compiled extension
 compile:
-    mypyc src/dgkit/parsers.py
+    cythonize -i src/dgkit/parsers.py
 
-# Remove mypyc-compiled extension
+# Remove Cython-compiled extension
 compile-clean:
-    rm -f src/dgkit/parsers*.so
+    rm -f src/dgkit/parsers*.so src/dgkit/parsers.c
 
 # Set up benchmark
 bench-setup:

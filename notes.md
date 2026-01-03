@@ -64,14 +64,15 @@
 - Finalize models
 - Run linters
 - Test UX
-
 - Benchmark against alternatives
+
+- Create CLAUDE.md file
+
 - Review code
 - Update tests
 - Enable dependable.
 - Create QA pipeline
 - Create publish pipeline
-- Create CLAUDE.md file
 - Add a nice screenshot to the top of the READE file (see <https://github.com/chaosprint/hindsight>).
 - Package release
 

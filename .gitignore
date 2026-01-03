@@ -1,6 +1,7 @@
 __pycache__
 *.egg-info
 *.so
+/src/dgkit/*.c
 /.coverage
 /.mypy_cache
 /.pytest_cache

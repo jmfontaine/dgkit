@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = [ "mypy>=1.0", "setuptools>=61" ]
+requires = [ "cython>=3.0", "setuptools>=61" ]
 
 [project]
 name = "dgkit"
@@ -29,8 +29,8 @@ scripts.dgkit = "dgkit.cli:app"
 dev = [
   "build>=1.3.0",
   "cogapp>=3.4.1",
+  "cython>=3.2.3",
   "lxml-stubs>=0.5.1",
-  "mypy>=1.19.1",
   "pre-commit>=4.5.1",
   "py-spy>=0.4.1",
   "pyproject-fmt>=2.11.1",
@@ -60,11 +60,11 @@ skip = [
   "*_i686",        # Skip 32-bit Linux
 ]
 
-# Use setuptools for wheel builds (enables mypyc compilation)
+# Use setuptools for wheel builds (enables Cython compilation)
 build-frontend = "build"
 
 # Install build dependencies before building
-before-build = "pip install mypy setuptools"
+before-build = "pip install cython setuptools"
 
 # Test the wheel after building
 test-command = "python -c \"from dgkit.parsers import ReleaseParser; print('Import OK')\""
