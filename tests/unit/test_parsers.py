@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import cast
 
+import pytest
 from lxml import etree
 
 from dgkit.models import (
@@ -16,10 +18,17 @@ from dgkit.models import (
     Release,
     ReleaseLabel,
     Series,
+    SubTrack,
     Track,
     Video,
 )
-from dgkit.parsers import ArtistParser, LabelParser, MasterReleaseParser, ReleaseParser
+from dgkit.parsers import (
+    ArtistParser,
+    LabelParser,
+    MasterReleaseParser,
+    ReleaseParser,
+    get_parser,
+)
 from dgkit.types import Element
 
 
@@ -491,3 +500,251 @@ class TestReleaseParser:
             )
         ]
         assert track.sub_tracks == []
+
+    def test_parse_release_with_sub_tracks(self):
+        """Test parsing tracks with sub_tracks (index tracks)."""
+        xml = """
+        <release id="4" status="Accepted">
+            <title>Album with Index</title>
+            <tracklist>
+                <track>
+                    <position>1</position>
+                    <title>Main Track</title>
+                    <duration>10:00</duration>
+                    <sub_tracks>
+                        <track>
+                            <position>1a</position>
+                            <title>Sub Track A</title>
+                            <duration>5:00</duration>
+                            <artists>
+                                <artist>
+                                    <id>100</id>
+                                    <name>Sub Artist</name>
+                                </artist>
+                            </artists>
+                            <extraartists>
+                                <artist>
+                                    <id>200</id>
+                                    <name>Producer</name>
+                                    <role>Producer</role>
+                                </artist>
+                            </extraartists>
+                        </track>
+                        <track>
+                            <position>1b</position>
+                            <title>Sub Track B</title>
+                            <duration>5:00</duration>
+                        </track>
+                    </sub_tracks>
+                </track>
+            </tracklist>
+        </release>
+        """
+        elem = etree.fromstring(xml)
+        parser = ReleaseParser()
+        records = list(parser.parse(cast(Element, elem)))
+
+        assert len(records) == 1
+        release = records[0]
+        assert len(release.tracklist) == 1
+        track = release.tracklist[0]
+        assert track.title == "Main Track"
+        assert len(track.sub_tracks) == 2
+        assert track.sub_tracks[0] == SubTrack(
+            duration="5:00",
+            position="1a",
+            title="Sub Track A",
+            artists=[
+                CreditArtist(
+                    id=100, artist_name_variation=None, join=None, name="Sub Artist"
+                )
+            ],
+            extra_artists=[
+                ExtraArtist(
+                    id=200,
+                    artist_name_variation=None,
+                    name="Producer",
+                    role="Producer",
+                    tracks=None,
+                )
+            ],
+        )
+        assert track.sub_tracks[1].position == "1b"
+        assert track.sub_tracks[1].title == "Sub Track B"
+
+
+class TestArtistParserMissingId:
+    def test_parse_artist_missing_id_raises(self):
+        """Artist without id should raise ValueError."""
+        xml = """
+        <artist>
+            <name>No ID Artist</name>
+        </artist>
+        """
+        elem = etree.fromstring(xml)
+        parser = ArtistParser()
+        with pytest.raises(ValueError, match="Required field 'id' is missing"):
+            list(parser.parse(cast(Element, elem)))
+
+    def test_parse_artist_empty_id_raises(self):
+        """Artist with empty id should raise ValueError."""
+        xml = """
+        <artist>
+            <id></id>
+            <name>Empty ID Artist</name>
+        </artist>
+        """
+        elem = etree.fromstring(xml)
+        parser = ArtistParser()
+        with pytest.raises(ValueError, match="Required field 'id' is missing"):
+            list(parser.parse(cast(Element, elem)))
+
+
+class TestGetParser:
+    def test_get_parser_from_filename(self):
+        """Parser detected from filename pattern."""
+        parser = get_parser(Path("discogs_20250101_artists.xml.gz"))
+        assert isinstance(parser, ArtistParser)
+
+    def test_get_parser_explicit_entity_type(self):
+        """Explicit entity type overrides filename."""
+        parser = get_parser(Path("unknown_file.xml.gz"), entity_type="labels")
+        assert isinstance(parser, LabelParser)
+
+    def test_get_parser_unknown_filename_raises(self):
+        """Unknown filename without entity type raises ValueError."""
+        with pytest.raises(ValueError, match="Cannot detect entity type"):
+            get_parser(Path("unknown_file.xml.gz"))
+
+    def test_get_parser_unsupported_entity_raises(self):
+        """Unsupported entity type raises NotImplementedError."""
+        with pytest.raises(
+            NotImplementedError, match="Parser for unknown not implemented"
+        ):
+            get_parser(Path("file.xml.gz"), entity_type="unknown")
+
+
+class TestLabelParserEdgeCases:
+    def test_parse_label_with_id_attribute(self):
+        """Label id can be in attribute (older format)."""
+        xml = """
+        <label id="123">
+            <name>Attr ID Label</name>
+        </label>
+        """
+        elem = etree.fromstring(xml)
+        parser = LabelParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert records[0].id == 123
+
+    def test_parse_label_with_text_name(self):
+        """Label name can be text content of element."""
+        xml = """
+        <label id="456">Test Label Name</label>
+        """
+        elem = etree.fromstring(xml)
+        parser = LabelParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert records[0].name == "Test Label Name"
+
+
+class TestParserSkipsNonMatchingTags:
+    def test_credit_artists_skips_non_artist_tags(self):
+        """Non-artist tags inside artists element should be skipped."""
+        xml = """
+        <release id="5" status="Accepted">
+            <title>Test</title>
+            <artists>
+                <comment>This is not an artist</comment>
+                <artist>
+                    <id>1</id>
+                    <name>Real Artist</name>
+                </artist>
+                <notes>Another non-artist</notes>
+            </artists>
+        </release>
+        """
+        elem = etree.fromstring(xml)
+        parser = ReleaseParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert len(records[0].artists) == 1
+        assert records[0].artists[0].name == "Real Artist"
+
+    def test_extra_artists_skips_non_artist_tags(self):
+        """Non-artist tags inside extraartists should be skipped."""
+        xml = """
+        <release id="6" status="Accepted">
+            <title>Test</title>
+            <extraartists>
+                <info>Not an artist</info>
+                <artist>
+                    <name>Producer</name>
+                    <role>Producer</role>
+                </artist>
+            </extraartists>
+        </release>
+        """
+        elem = etree.fromstring(xml)
+        parser = ReleaseParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert len(records[0].extra_artists) == 1
+        assert records[0].extra_artists[0].name == "Producer"
+
+    def test_tracks_skips_non_track_tags(self):
+        """Non-track tags inside tracklist should be skipped."""
+        xml = """
+        <release id="7" status="Accepted">
+            <title>Test</title>
+            <tracklist>
+                <info>Not a track</info>
+                <track>
+                    <position>1</position>
+                    <title>Real Track</title>
+                </track>
+            </tracklist>
+        </release>
+        """
+        elem = etree.fromstring(xml)
+        parser = ReleaseParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert len(records[0].tracklist) == 1
+        assert records[0].tracklist[0].title == "Real Track"
+
+    def test_companies_skips_non_company_tags(self):
+        """Non-company tags inside companies should be skipped."""
+        xml = """
+        <release id="8" status="Accepted">
+            <title>Test</title>
+            <companies>
+                <note>Not a company</note>
+                <company>
+                    <id>1</id>
+                    <name>Real Company</name>
+                </company>
+            </companies>
+        </release>
+        """
+        elem = etree.fromstring(xml)
+        parser = ReleaseParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert len(records[0].companies) == 1
+        assert records[0].companies[0].name == "Real Company"
+
+    def test_videos_skips_non_video_tags(self):
+        """Non-video tags inside videos should be skipped."""
+        xml = """
+        <master id="9">
+            <title>Test</title>
+            <videos>
+                <info>Not a video</info>
+                <video src="http://example.com" duration="100" embed="false">
+                    <title>Real Video</title>
+                </video>
+            </videos>
+        </master>
+        """
+        elem = etree.fromstring(xml)
+        parser = MasterReleaseParser()
+        records = list(parser.parse(cast(Element, elem)))
+        assert len(records[0].videos) == 1
+        assert records[0].videos[0].title == "Real Video"
