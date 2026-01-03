@@ -135,11 +135,11 @@ dgkit convert -f jsonl discogs_{snapshot}_artists.xml.gz discogs_{snapshot}_labe
 # Convert all XML files using a wildcard
 dgkit convert -f jsonl discogs_{snapshot}_*.xml.gz
 
-# Convert a file with non-standard name (explicit type)
-dgkit convert -f jsonl --type releases my-releases.xml.gz
+# Convert a file with entity type in filename (auto-detected)
+dgkit convert -f jsonl my_releases_backup.xml.gz
 
-# Convert a sample file (type auto-detected from filename)
-dgkit convert -f jsonl discogs_{snapshot}_releases_sample_1000000.xml.gz
+# Explicit type override when filename has no entity type
+dgkit convert -f jsonl --type releases dump.xml.gz
 ```""")
 ]]] -->
 ```shell
@@ -170,11 +170,11 @@ dgkit convert -f jsonl discogs_20260101_artists.xml.gz discogs_20260101_labels.x
 # Convert all XML files using a wildcard
 dgkit convert -f jsonl discogs_20260101_*.xml.gz
 
-# Convert a file with non-standard name (explicit type)
-dgkit convert -f jsonl --type releases my-releases.xml.gz
+# Convert a file with entity type in filename (auto-detected)
+dgkit convert -f jsonl my_releases_backup.xml.gz
 
-# Convert a sample file (type auto-detected from filename)
-dgkit convert -f jsonl discogs_20260101_releases_sample_1000000.xml.gz
+# Explicit type override when filename has no entity type
+dgkit convert -f jsonl --type releases dump.xml.gz
 ```
 <!-- [[[end]]] -->
 
@@ -278,11 +278,11 @@ dgkit load -d sqlite --strict discogs_{snapshot}_releases.xml.gz
 # Fail on any unhandled XML data
 dgkit load -d sqlite --strict-fail discogs_{snapshot}_releases.xml.gz
 
-# Load a file with non-standard name (explicit type)
-dgkit load -d sqlite --type releases my-releases.xml.gz
+# Load a file with entity type in filename (auto-detected)
+dgkit load -d sqlite my_releases_backup.xml.gz
 
-# Load a sample file (type auto-detected from filename)
-dgkit load -d sqlite discogs_{snapshot}_releases_sample_1000000.xml.gz
+# Explicit type override when filename has no entity type
+dgkit load -d sqlite --type releases dump.xml.gz
 ```""")
 ]]] -->
 ```shell
@@ -322,11 +322,11 @@ dgkit load -d sqlite --strict discogs_20260101_releases.xml.gz
 # Fail on any unhandled XML data
 dgkit load -d sqlite --strict-fail discogs_20260101_releases.xml.gz
 
-# Load a file with non-standard name (explicit type)
-dgkit load -d sqlite --type releases my-releases.xml.gz
+# Load a file with entity type in filename (auto-detected)
+dgkit load -d sqlite my_releases_backup.xml.gz
 
-# Load a sample file (type auto-detected from filename)
-dgkit load -d sqlite discogs_20260101_releases_sample_1000000.xml.gz
+# Explicit type override when filename has no entity type
+dgkit load -d sqlite --type releases dump.xml.gz
 ```
 <!-- [[[end]]] -->
 

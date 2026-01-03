@@ -563,10 +563,8 @@ PARSERS: dict[str, type[Parser]] = {
     "releases": ReleaseParser,
 }
 
-# Matches: discogs_YYYYMMDD_<entity>.xml.gz or discogs_YYYYMMDD_<entity>_sample_N.xml.gz
-FILENAME_PATTERN = re.compile(
-    r"discogs_\d{8}_(artists|labels|masters|releases)(?:_sample_\d+)?\.xml\.gz"
-)
+# Matches entity type anywhere in filename (e.g., "my_artists_dump.xml.gz")
+ENTITY_PATTERN = re.compile(r"(artists|labels|masters|releases)")
 
 
 def get_parser(path: Path, entity_type: str | None = None) -> Parser:
@@ -581,16 +579,16 @@ def get_parser(path: Path, entity_type: str | None = None) -> Parser:
         Parser instance for the entity type.
 
     Raises:
-        ValueError: If filename doesn't match pattern and no entity_type provided.
+        ValueError: If filename doesn't contain entity type and no entity_type provided.
         NotImplementedError: If entity type is not supported.
     """
     if entity_type:
         entity = entity_type
     else:
-        match = FILENAME_PATTERN.match(path.name)
+        match = ENTITY_PATTERN.search(path.name)
         if not match:
             raise ValueError(
-                f"Unrecognized filename pattern: {path.name}. "
+                f"Cannot detect entity type from filename: {path.name}. "
                 f"Use --type to specify entity type."
             )
         entity = match.group(1)
