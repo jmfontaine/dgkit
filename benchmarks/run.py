@@ -62,6 +62,30 @@ def _dgkit_cmd(sample: Path, out: Path) -> list[str]:
     ]
 
 
+def _dgkit_cython_setup() -> None:
+    """Compile parsers.py with Cython."""
+    subprocess.run(
+        [
+            "uv",
+            "run",
+            "--directory",
+            str(REPO_DIR),
+            "cythonize",
+            "-i",
+            "src/dgkit/parsers.py",
+        ],
+        capture_output=True,
+        check=True,
+    )
+
+
+def _dgkit_cython_teardown() -> None:
+    """Remove Cython-compiled files."""
+    for pattern in ["src/dgkit/parsers*.so", "src/dgkit/parsers.c"]:
+        for f in REPO_DIR.glob(pattern.replace("src/dgkit/", "src/dgkit/")):
+            f.unlink(missing_ok=True)
+
+
 def _xml2db_python_cmd(sample: Path, out: Path) -> list[str]:
     return [
         str(ALTERNATIVES_DIR / "xml2db-python/.venv/bin/python"),
@@ -74,6 +98,12 @@ def _xml2db_python_cmd(sample: Path, out: Path) -> list[str]:
 
 TOOLS: dict[str, Any] = {
     "dgkit": {"cmd": _dgkit_cmd, "needs_output": True},
+    "dgkit-cython": {
+        "cmd": _dgkit_cmd,
+        "needs_output": True,
+        "setup": _dgkit_cython_setup,
+        "teardown": _dgkit_cython_teardown,
+    },
     "xml2db-python": {"cmd": _xml2db_python_cmd, "needs_output": True},
 }
 
@@ -82,27 +112,50 @@ def run_benchmark(sample: Path, tool: str) -> dict[str, Any] | None:
     """Run a single benchmark with gtime to capture timing and memory."""
     config = TOOLS[tool]
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir = Path(tmpdir)
-        out_dir = tmpdir / "output"
-        out_dir.mkdir()
+    # Run setup if defined
+    if setup := config.get("setup"):
+        with console.status(f"[bold blue]Setting up {tool}..."):
+            try:
+                setup()
+            except subprocess.CalledProcessError:
+                console.print(f"[red]Error:[/red] {tool} setup failed")
+                return None
 
-        # Handle sample copying for C#
-        if config.get("copy_sample"):
-            tool_sample = out_dir / sample.name
-            shutil.copy(sample, tool_sample)
-        else:
-            tool_sample = sample
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+            out_dir = tmpdir / "output"
+            out_dir.mkdir()
 
-        tool_cmd = config["cmd"](tool_sample, out_dir)
+            # Handle sample copying for C#
+            if config.get("copy_sample"):
+                tool_sample = out_dir / sample.name
+                shutil.copy(sample, tool_sample)
+            else:
+                tool_sample = sample
 
-        try:
-            with console.status(f"[bold green]Running {tool}..."):
-                result = subprocess.run(
-                    _get_time_cmd() + tool_cmd,
-                    capture_output=True,
-                    text=True,
-                )
+            tool_cmd = config["cmd"](tool_sample, out_dir)
+
+            try:
+                with console.status(f"[bold green]Running {tool}..."):
+                    result = subprocess.run(
+                        _get_time_cmd() + tool_cmd,
+                        capture_output=True,
+                        text=True,
+                    )
+            except FileNotFoundError:
+                if sys.platform == "darwin":
+                    console.print(
+                        "[red]Error:[/red] gtime not found. "
+                        "Install with: [cyan]brew install gnu-time[/cyan]"
+                    )
+                else:
+                    console.print(
+                        "[red]Error:[/red] /usr/bin/time not found. "
+                        "Install with: [cyan]apt install time[/cyan]"
+                    )
+                return None
+
             # Check for command failure
             if result.returncode != 0:
                 console.print(
@@ -136,6 +189,7 @@ def run_benchmark(sample: Path, tool: str) -> dict[str, Any] | None:
                                 console.print(f"  {line.strip()}")
                                 break
                 return None
+
             # Parse gtime output
             stderr = result.stderr
             stats: dict[str, Any] = {"exit_code": result.returncode}
@@ -150,18 +204,10 @@ def run_benchmark(sample: Path, tool: str) -> dict[str, Any] | None:
                 elif "System time" in line:
                     stats["system_time"] = float(line.split(": ")[1].strip())
             return stats
-        except FileNotFoundError:
-            if sys.platform == "darwin":
-                console.print(
-                    "[red]Error:[/red] gtime not found. "
-                    "Install with: [cyan]brew install gnu-time[/cyan]"
-                )
-            else:
-                console.print(
-                    "[red]Error:[/red] /usr/bin/time not found. "
-                    "Install with: [cyan]apt install time[/cyan]"
-                )
-            return None
+    finally:
+        # Run teardown if defined
+        if teardown := config.get("teardown"):
+            teardown()
 
 
 app = typer.Typer(help="Benchmark dgkit against alternatives.")
