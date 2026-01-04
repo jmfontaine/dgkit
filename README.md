@@ -69,21 +69,15 @@ cog.out("```text\n{}```".format(result.output))
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
 │ *  --format       -f                   [blackhole|console|js  Output file format.    │
 │                                        on|jsonl]              [required]             │
+│    --compress     -c                   [bz2|gzip|none]        Compression algorithm. │
+│                                                               [default: none]        │
+│    --drop-if                           TEXT                   Drop records matching  │
+│                                                               field=value.           │
 │    --limit                             INTEGER                Max records per file.  │
 │    --output-dir   -o                   PATH                   Output directory.      │
 │                                                               [default: .]           │
-│    --compress     -c                   [bz2|gzip|none]        Compression algorithm. │
-│                                                               [default: none]        │
 │    --overwrite    -w                                          Overwrite existing     │
 │                                                               files.                 │
-│    --type         -t                   [artists|labels|maste  Entity type (if not    │
-│                                        rs|releases]           auto-detected).        │
-│    --drop-if                           TEXT                   Drop records matching  │
-│                                                               field=value.           │
-│    --unset                             TEXT                   Fields to set to null  │
-│                                                               (comma-separated).     │
-│    --summary          --no-summary                            Show summary.          │
-│                                                               [default: summary]     │
 │    --progress         --no-progress                           Show progress bar.     │
 │                                                               [default: progress]    │
 │    --strict                                                   Warn about unhandled   │
@@ -91,6 +85,14 @@ cog.out("```text\n{}```".format(result.output))
 │    --strict-fail                                              Fail on unhandled XML  │
 │                                                               data (implies          │
 │                                                               --strict).             │
+│    --summary          --no-summary                            Show summary.          │
+│                                                               [default: summary]     │
+│    --type         -t                   [artists|labels|maste  Entity type (if not    │
+│                                        rs|releases]           auto-detected).        │
+│    --unset                             TEXT                   Fields to set to null  │
+│                                                               (comma-separated).     │
+│    --verbose      -v                                          Show detailed          │
+│                                                               processing info.       │
 │    --help                                                     Show this message and  │
 │                                                               exit.                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯

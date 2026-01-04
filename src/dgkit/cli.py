@@ -96,38 +96,22 @@ def convert_cmd(
             "--format", "-f", case_sensitive=False, help="Output file format."
         ),
     ],
-    limit: Annotated[int | None, typer.Option(help="Max records per file.")] = None,
-    output_dir: Annotated[
-        Path, typer.Option("--output-dir", "-o", help="Output directory.")
-    ] = Path("."),
     compress: Annotated[
         Compression,
         typer.Option(
             "--compress", "-c", case_sensitive=False, help="Compression algorithm."
         ),
     ] = Compression.none,
-    overwrite: Annotated[
-        bool, typer.Option("--overwrite", "-w", help="Overwrite existing files.")
-    ] = False,
-    entity_type: Annotated[
-        EntityType | None,
-        typer.Option(
-            "--type",
-            "-t",
-            case_sensitive=False,
-            help="Entity type (if not auto-detected).",
-        ),
-    ] = None,
     drop_if: Annotated[
         list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
     ] = [],
-    unset: Annotated[
-        list[str],
-        typer.Option("--unset", help="Fields to set to null (comma-separated)."),
-    ] = [],
-    summary: Annotated[
-        bool, typer.Option("--summary/--no-summary", help="Show summary.")
-    ] = True,
+    limit: Annotated[int | None, typer.Option(help="Max records per file.")] = None,
+    output_dir: Annotated[
+        Path, typer.Option("--output-dir", "-o", help="Output directory.")
+    ] = Path("."),
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", "-w", help="Overwrite existing files.")
+    ] = False,
     progress: Annotated[
         bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
     ] = True,
@@ -139,6 +123,26 @@ def convert_cmd(
         typer.Option(
             "--strict-fail", help="Fail on unhandled XML data (implies --strict)."
         ),
+    ] = False,
+    summary: Annotated[
+        bool, typer.Option("--summary/--no-summary", help="Show summary.")
+    ] = True,
+    entity_type: Annotated[
+        EntityType | None,
+        typer.Option(
+            "--type",
+            "-t",
+            case_sensitive=False,
+            help="Entity type (if not auto-detected).",
+        ),
+    ] = None,
+    unset: Annotated[
+        list[str],
+        typer.Option("--unset", help="Fields to set to null (comma-separated)."),
+    ] = [],
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Show detailed processing info."),
     ] = False,
 ) -> None:
     # --strict-fail implies --strict
@@ -172,6 +176,7 @@ def convert_cmd(
         show_progress=progress,
         show_summary=summary,
         strict=strict,
+        verbose=verbose,
     )
     if result:
         display_result(result)

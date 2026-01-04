@@ -265,6 +265,14 @@ def build_database_path(paths: list[Path], output_dir: Path) -> Path:
     return output_dir / f"{stem}.db"
 
 
+def _log(message: str, verbose: bool) -> None:
+    """Log a message if verbose mode is enabled."""
+    if verbose:
+        import sys
+
+        print(f"[convert] {message}", file=sys.stderr)
+
+
 def convert(
     *,
     format: FileFormat,
@@ -278,11 +286,16 @@ def convert(
     show_progress: bool = False,
     show_summary: bool = True,
     strict: bool = False,
+    verbose: bool = False,
 ) -> Summary | None:
     """Convert XML dumps to a file format."""
+    import time
+
     valid_paths = [p for p in paths if p.is_file()]
     writer_cls = FILE_WRITERS[format]
     filter = FilterChain(filters) if filters else None
+
+    _log(f"Processing {len(valid_paths)} file(s) with format={format.value}", verbose)
 
     with ExitStack() as stack:
         summary = (
@@ -295,6 +308,8 @@ def convert(
         if writer_cls.aggregates_inputs:
             with get_file_writer(format, path=None) as writer:
                 for path in valid_paths:
+                    _log(f"Starting {path.name}", verbose)
+                    file_start = time.perf_counter()
                     execute(
                         fail_on_unhandled=fail_on_unhandled,
                         filter=filter,
@@ -308,10 +323,14 @@ def convert(
                         summary=summary,
                         writer=writer,
                     )
+                    file_elapsed = time.perf_counter() - file_start
+                    _log(f"Finished {path.name} in {file_elapsed:.2f}s", verbose)
                     tracker.advance_file(path)
         else:
             for path in valid_paths:
                 output_path = build_output_path(path, format, output_dir, compression)
+                _log(f"Starting {path.name} -> {output_path.name}", verbose)
+                file_start = time.perf_counter()
                 with get_file_writer(
                     format, compression=compression, path=output_path
                 ) as writer:
@@ -328,6 +347,8 @@ def convert(
                         summary=summary,
                         writer=writer,
                     )
+                file_elapsed = time.perf_counter() - file_start
+                _log(f"Finished {path.name} in {file_elapsed:.2f}s", verbose)
                 tracker.advance_file(path)
 
         return summary.result() if summary else None
