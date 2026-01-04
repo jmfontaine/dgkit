@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 class ArtistRef:
     """Reference to another artist (used for aliases, members, groups)."""
 
-    id: int
-    name: str
+    id: int | None
+    name: str | None
 
 
 @dataclass(slots=True)
@@ -27,8 +27,8 @@ class Artist:
 class LabelRef:
     """Reference to another label (used for sub_labels, parent_label)."""
 
-    id: int
-    name: str
+    id: int | None
+    name: str | None
 
 
 @dataclass(slots=True)
@@ -47,10 +47,10 @@ class Label:
 class CreditArtist:
     """Artist credit on a release or master."""
 
-    id: int
+    id: int | None
     artist_name_variation: str | None
     join: str | None
-    name: str
+    name: str | None
 
 
 @dataclass(slots=True)
@@ -59,7 +59,7 @@ class ExtraArtist:
 
     id: int | None
     artist_name_variation: str | None
-    name: str
+    name: str | None
     role: str | None
     tracks: str | None
 
@@ -68,17 +68,17 @@ class ExtraArtist:
 class ReleaseLabel:
     """Label credit on a release."""
 
-    id: int
+    id: int | None
     catalog_number: str | None
-    name: str
+    name: str | None
 
 
 @dataclass(slots=True)
 class Format:
     """Physical format of a release."""
 
-    name: str
-    quantity: int
+    name: str | None
+    quantity: int | None
     text: str | None
     descriptions: list[str] = field(default_factory=list)
 
@@ -110,29 +110,29 @@ class Track:
 class Identifier:
     """Identifier like barcode, matrix, etc."""
 
+    type: str | None
     description: str | None
-    type: str
-    value: str
+    value: str | None
 
 
 @dataclass(slots=True)
 class Company:
     """Company credit on a release."""
 
-    id: int
+    id: int | None
     catalog_number: str | None
     entity_type: int | None
     entity_type_name: str | None
-    name: str
+    name: str | None
 
 
 @dataclass(slots=True)
 class Series:
     """Series a release belongs to."""
 
-    id: int
+    id: int | None
     catalog_number: str | None
-    name: str
+    name: str | None
 
 
 @dataclass(slots=True)
@@ -140,9 +140,9 @@ class Video:
     """Video associated with a master release."""
 
     description: str | None
-    duration: int
-    embed: bool
-    src: str
+    duration: int | None
+    embed: bool | None
+    src: str | None
     title: str | None
 
 

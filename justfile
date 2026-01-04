@@ -40,6 +40,17 @@ check:
 clean:
     rm -rf dist/ .coverage .pytest_cache/ .ruff_cache/
 
+# Record demo GIF
+record-demo:
+    #!/usr/bin/env bash
+    set -e
+    mkdir -p /tmp/dgkit
+    ln -sf ~/Data/Discogs/2026/2026-01-01/discogs_20260101_releases.xml.gz /tmp/dgkit/releases.xml.gz
+    cd /tmp/dgkit
+    vhs "{{ justfile_directory() }}/docs/user/assets/demo.tape"
+    mv demo.gif "{{ justfile_directory() }}/docs/user/assets/"
+    rm -rf /tmp/dgkit
+
 # Check for outdated dependencies
 deps-outdated:
     uv sync --upgrade --dry-run
@@ -76,17 +87,6 @@ lint:
     pyproject-fmt --check pyproject.toml  # pyproject.toml formatting
     sqlfluff lint src/dgkit/sql           # SQL files linting
     npx markdownlint-cli2 "**/*.md"       # Markdown files linting
-
-# Record demo GIF
-demo:
-    #!/usr/bin/env bash
-    set -e
-    mkdir -p /tmp/dgkit "{{justfile_directory()}}/docs/user/assets"
-    ln -sf ~/Data/Discogs/2026/2026-01-01/discogs_20260101_releases.xml.gz /tmp/dgkit/releases.xml.gz
-    cd /tmp/dgkit
-    vhs "{{justfile_directory()}}/docs/user/assets/demo.tape"
-    mv demo.gif "{{justfile_directory()}}/docs/user/assets/"
-    rm -rf /tmp/dgkit
 
 # Set up development environment
 setup:

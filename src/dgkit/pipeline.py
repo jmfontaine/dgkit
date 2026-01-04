@@ -1,4 +1,3 @@
-import re
 from contextlib import ExitStack
 from pathlib import Path
 from typing import IO, Callable, Iterator, cast
@@ -237,16 +236,12 @@ def build_output_path(
     return output_dir / f"{stem}.{format.value}{ext}"
 
 
-DATABASE_FILENAME_PATTERN = re.compile(r"(discogs_\d{8})_\w+\.xml\.gz")
-
-
 def build_database_path(paths: list[Path], output_dir: Path) -> Path:
-    """Build database path from input filenames (e.g., discogs_20251201.db)."""
-    for path in paths:
-        match = DATABASE_FILENAME_PATTERN.match(path.name)
-        if match:
-            return output_dir / f"{match.group(1)}.db"
-    raise ValueError("No valid input file found to derive database name")
+    """Build database path from input filenames."""
+    if not paths:
+        raise ValueError("No input files provided")
+    stem = paths[0].name.removesuffix(".xml.gz")
+    return output_dir / f"{stem}.db"
 
 
 def convert(

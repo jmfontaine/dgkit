@@ -89,29 +89,28 @@ class TestBuildOutputPath:
 
 
 class TestBuildDatabasePath:
-    def test_extracts_date_from_filename(self, tmp_path):
-        """Extract date prefix from Discogs filename."""
+    def test_uses_stem_from_first_file(self, tmp_path):
+        """Use stem from first file for database name."""
         paths = [Path("discogs_20250101_artists.xml.gz")]
         result = build_database_path(paths, tmp_path)
-        assert result == tmp_path / "discogs_20250101.db"
+        assert result == tmp_path / "discogs_20250101_artists.db"
 
-    def test_uses_first_matching_filename(self, tmp_path):
-        """Use first matching filename when multiple provided."""
+    def test_uses_first_file_stem(self, tmp_path):
+        """Use first file's stem when multiple provided."""
         paths = [
-            Path("other_file.xml.gz"),
+            Path("releases.xml.gz"),
             Path("discogs_20250201_labels.xml.gz"),
-            Path("discogs_20250301_releases.xml.gz"),
         ]
         result = build_database_path(paths, tmp_path)
-        assert result == tmp_path / "discogs_20250201.db"
+        assert result == tmp_path / "releases.db"
 
-    def test_raises_when_no_match(self, tmp_path):
-        """Raise ValueError when no valid filename found."""
-        paths = [Path("unknown_file.xml.gz"), Path("another.xml")]
-        with pytest.raises(ValueError, match="No valid input file found"):
-            build_database_path(paths, tmp_path)
+    def test_handles_simple_filename(self, tmp_path):
+        """Accept simple filenames without date pattern."""
+        paths = [Path("my_releases.xml.gz")]
+        result = build_database_path(paths, tmp_path)
+        assert result == tmp_path / "my_releases.db"
 
     def test_empty_paths_raises(self, tmp_path):
         """Raise ValueError for empty path list."""
-        with pytest.raises(ValueError, match="No valid input file found"):
+        with pytest.raises(ValueError, match="No input files provided"):
             build_database_path([], tmp_path)

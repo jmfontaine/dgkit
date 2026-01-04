@@ -5,7 +5,7 @@ import re
 import sqlite3
 import types
 
-from dataclasses import asdict, astuple, fields, is_dataclass
+from dataclasses import asdict, fields, is_dataclass
 from importlib.resources import files
 from pathlib import Path
 from typing import (
@@ -69,6 +69,20 @@ def _singularize(name: str) -> str:
     if name.endswith("s"):
         return name[:-1]
     return name
+
+
+def _dataclass_to_row(obj: Any) -> tuple:
+    """Convert a dataclass to a tuple, serializing lists/tuples as JSON."""
+    values = []
+    for f in fields(obj):
+        value = getattr(obj, f.name)
+        if isinstance(value, (list, tuple)):
+            # Convert any nested dataclasses to dicts for JSON serialization
+            serializable = [asdict(v) if is_dataclass(v) else v for v in value]
+            values.append(json.dumps(serializable))
+        else:
+            values.append(value)
+    return tuple(values)
 
 
 def parse_sqlite_dsn(dsn: str) -> str:
@@ -146,6 +160,25 @@ def _load_sql(database: str, category: str, name: str) -> str | None:
     if match:
         return match.group(0)
     return None
+
+
+def _extract_columns_from_sql(sql: str) -> set[str]:
+    """Extract column names from a CREATE TABLE statement."""
+    # Match column definitions between parentheses
+    match = re.search(r"\(([^)]+)\)", sql, re.DOTALL)
+    if not match:
+        return set()
+    columns_part = match.group(1)
+    columns = set()
+    for line in columns_part.split(","):
+        line = line.strip()
+        if not line:
+            continue
+        # Extract column name (first word, possibly quoted)
+        col_match = re.match(r'"?(\w+)"?', line)
+        if col_match:
+            columns.add(col_match.group(1))
+    return columns
 
 
 def open_compressed(path: Path, mode: str, compression: Compression) -> IO[Any]:
@@ -327,16 +360,6 @@ class SqliteWriter:
         annotations = type(record).__annotations__
         junction_fields: set[str] = set()
 
-        # Identify junction table fields (list[int] or list[dataclass])
-        for field, field_type in annotations.items():
-            elem_type = _get_list_element_type(field_type)
-            if elem_type is not None and (elem_type is int or is_dataclass(elem_type)):
-                junction_fields.add(field)
-                junction_table = f"{table_name}_{_singularize(field)}"
-                self._junction_tables[(table_name, field)] = (junction_table, elem_type)
-
-        self._junction_fields[table_name] = junction_fields
-
         assert self._conn is not None  # Guaranteed after __enter__
         # Drop and recreate main table
         self._conn.execute(f"DROP TABLE IF EXISTS {table_name}")
@@ -345,7 +368,30 @@ class SqliteWriter:
         sql = _load_sql("sqlite", "tables", table_name)
         if sql:
             self._conn.execute(sql)
+            # Extract columns from SQL to determine which fields are junction tables
+            schema_columns = _extract_columns_from_sql(sql)
         else:
+            schema_columns = set()
+
+        # Identify junction table fields (list[int], list[str], or list[dataclass])
+        # A field is a junction field if it's a list type AND not in the SQL schema
+        for field, field_type in annotations.items():
+            elem_type = _get_list_element_type(field_type)
+            if elem_type is not None and (
+                elem_type is int or elem_type is str or is_dataclass(elem_type)
+            ):
+                # Only treat as junction if field is not in main table schema
+                if not schema_columns or field not in schema_columns:
+                    junction_fields.add(field)
+                    junction_table = f"{table_name}_{_singularize(field)}"
+                    self._junction_tables[(table_name, field)] = (
+                        junction_table,
+                        elem_type,
+                    )
+
+        self._junction_fields[table_name] = junction_fields
+
+        if not sql:
             # Fall back to dynamic schema generation (excluding junction fields)
             field_names = _get_field_names(record)
             columns = []
@@ -383,6 +429,15 @@ class SqliteWriter:
                     f"{fk_col} INTEGER NOT NULL, "
                     f"{ref_col} INTEGER NOT NULL, "
                     f"PRIMARY KEY ({fk_col}, {ref_col}))"
+                )
+            elif elem_type is str:
+                # String junction table: {table}_id, {field_singular}
+                fk_col = f"{table_name}_id"
+                val_col = _singularize(field)
+                self._conn.execute(
+                    f"CREATE TABLE {junction_table} ("
+                    f"{fk_col} INTEGER NOT NULL, "
+                    f"{val_col} TEXT NOT NULL)"
                 )
             elif is_dataclass(elem_type):
                 # Dataclass junction table: {table}_id + elem fields
@@ -463,11 +518,11 @@ class SqliteWriter:
             values = _get_field_value(record, field)
             if values:
                 for item in values:
-                    if elem_type is int:
+                    if elem_type is int or elem_type is str:
                         self._buffers[junction_table].append((record_id, item))
                     elif is_dataclass(elem_type):
                         self._buffers[junction_table].append(
-                            (record_id, *astuple(item))
+                            (record_id, *_dataclass_to_row(item))
                         )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
@@ -528,31 +583,47 @@ class PostgresWriter:
         annotations = type(record).__annotations__
         junction_fields: set[str] = set()
 
-        for field, field_type in annotations.items():
-            elem_type = _get_list_element_type(field_type)
-            if elem_type is not None and (elem_type is int or is_dataclass(elem_type)):
-                junction_fields.add(field)
-                junction_table = f"{table_name}_{_singularize(field)}"
-                self._junction_tables[(table_name, field)] = (junction_table, elem_type)
-
-        self._junction_fields[table_name] = junction_fields
-
         conn.execute(
             pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
                 pgsql.Identifier(table_name)
             )
         )
 
+        # Try to load schema from SQL file
+        schema_sql = _load_sql("postgresql", "tables", table_name)
+        if schema_sql:
+            # SQL loaded from package resources is trusted
+            conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
+            # Extract columns from SQL to determine which fields are junction tables
+            schema_columns = _extract_columns_from_sql(schema_sql)
+        else:
+            schema_columns = set()
+
+        # Identify junction table fields (list[int], list[str], or list[dataclass])
+        # A field is a junction field if it's a list type AND not in the SQL schema
+        for field, field_type in annotations.items():
+            elem_type = _get_list_element_type(field_type)
+            if elem_type is not None and (
+                elem_type is int or elem_type is str or is_dataclass(elem_type)
+            ):
+                # Only treat as junction if field is not in main table schema
+                if not schema_columns or field not in schema_columns:
+                    junction_fields.add(field)
+                    junction_table = f"{table_name}_{_singularize(field)}"
+                    self._junction_tables[(table_name, field)] = (
+                        junction_table,
+                        elem_type,
+                    )
+
+        self._junction_fields[table_name] = junction_fields
+
         # Track column names for COPY (excluding junction fields)
         all_field_names = _get_field_names(record)
         column_names = [f for f in all_field_names if f not in junction_fields]
         self._table_columns[table_name] = column_names
 
-        schema_sql = _load_sql("postgresql", "tables", table_name)
-        if schema_sql:
-            # SQL loaded from package resources is trusted
-            conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
-        else:
+        if not schema_sql:
+            # Fall back to dynamic schema generation (excluding junction fields)
             col_defs: list[pgsql.Composable] = []
             for i, field_name in enumerate(all_field_names):
                 if field_name in junction_fields:
@@ -594,6 +665,9 @@ class PostgresWriter:
             if elem_type is int:
                 ref_col = f"{_singularize(field)}_id"
                 junction_columns = [fk_col, ref_col]
+            elif elem_type is str:
+                val_col = _singularize(field)
+                junction_columns = [fk_col, val_col]
             elif is_dataclass(elem_type):
                 junction_columns = [fk_col] + _get_type_field_names(elem_type)
             else:
@@ -618,6 +692,17 @@ class PostgresWriter:
                         pgsql.Identifier(ref_col),
                         pgsql.Identifier(fk_col),
                         pgsql.Identifier(ref_col),
+                    )
+                )
+            elif elem_type is str:
+                val_col = _singularize(field)
+                conn.execute(
+                    pgsql.SQL(
+                        "CREATE TABLE {} ({} BIGINT NOT NULL, {} TEXT NOT NULL)"
+                    ).format(
+                        pgsql.Identifier(junction_table),
+                        pgsql.Identifier(fk_col),
+                        pgsql.Identifier(val_col),
                     )
                 )
             elif is_dataclass(elem_type):
@@ -712,11 +797,11 @@ class PostgresWriter:
             values = _get_field_value(record, field)
             if values:
                 for item in values:
-                    if elem_type is int:
+                    if elem_type is int or elem_type is str:
                         self._buffers[junction_table].append((record_id, item))
                     elif is_dataclass(elem_type):
                         self._buffers[junction_table].append(
-                            (record_id, *astuple(item))
+                            (record_id, *_dataclass_to_row(item))
                         )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)

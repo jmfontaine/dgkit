@@ -12,16 +12,16 @@ CREATE TABLE "release" (
 
 CREATE TABLE release_artist (
     release_id INTEGER NOT NULL,
-    id INTEGER NOT NULL,
-    name TEXT NOT NULL,
+    id INTEGER,
+    name TEXT,
     artist_name_variation TEXT,
     "join" TEXT
 );
 
 CREATE TABLE release_company (
     release_id INTEGER NOT NULL,
-    id INTEGER NOT NULL,
-    name TEXT NOT NULL,
+    id INTEGER,
+    name TEXT,
     catalog_number TEXT,
     entity_type INTEGER,
     entity_type_name TEXT
@@ -30,7 +30,7 @@ CREATE TABLE release_company (
 CREATE TABLE release_extraartist (
     release_id INTEGER NOT NULL,
     id INTEGER,
-    name TEXT NOT NULL,
+    name TEXT,
     artist_name_variation TEXT,
     role TEXT,
     tracks TEXT
@@ -38,41 +38,41 @@ CREATE TABLE release_extraartist (
 
 CREATE TABLE release_format (
     release_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    quantity INTEGER NOT NULL,
+    name TEXT,
+    quantity INTEGER,
     "text" TEXT,
     descriptions TEXT
 );
 
 CREATE TABLE release_genre (
     release_id INTEGER NOT NULL,
-    genre TEXT NOT NULL
+    genre TEXT
 );
 
 CREATE TABLE release_identifier (
     release_id INTEGER NOT NULL,
-    type TEXT NOT NULL,
+    type TEXT,
     description TEXT,
-    value TEXT NOT NULL
+    value TEXT
 );
 
 CREATE TABLE release_label (
     release_id INTEGER NOT NULL,
-    id INTEGER NOT NULL,
-    name TEXT NOT NULL,
+    id INTEGER,
+    name TEXT,
     catalog_number TEXT
 );
 
 CREATE TABLE release_series (
     release_id INTEGER NOT NULL,
-    id INTEGER NOT NULL,
-    name TEXT NOT NULL,
+    id INTEGER,
+    name TEXT,
     catalog_number TEXT
 );
 
 CREATE TABLE release_style (
     release_id INTEGER NOT NULL,
-    style TEXT NOT NULL
+    style TEXT
 );
 
 CREATE TABLE release_track (
@@ -87,9 +87,9 @@ CREATE TABLE release_track (
 
 CREATE TABLE release_video (
     release_id INTEGER NOT NULL,
-    src TEXT NOT NULL,
-    duration INTEGER NOT NULL,
-    embed INTEGER NOT NULL,
+    src TEXT,
+    duration INTEGER,
+    embed INTEGER,
     title TEXT,
     description TEXT
 );

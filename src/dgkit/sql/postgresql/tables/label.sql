@@ -10,6 +10,6 @@ CREATE TABLE label (
 
 CREATE TABLE label_sublabel (
     label_id BIGINT NOT NULL,
-    id BIGINT NOT NULL,
-    name TEXT NOT NULL
+    id BIGINT,
+    name TEXT
 );

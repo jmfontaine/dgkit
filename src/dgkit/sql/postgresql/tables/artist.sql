@@ -10,18 +10,18 @@ CREATE TABLE artist (
 
 CREATE TABLE artist_alias (
     artist_id BIGINT NOT NULL,
-    id BIGINT NOT NULL,
-    name TEXT NOT NULL
+    id BIGINT,
+    name TEXT
 );
 
 CREATE TABLE artist_group (
     artist_id BIGINT NOT NULL,
-    id BIGINT NOT NULL,
-    name TEXT NOT NULL
+    id BIGINT,
+    name TEXT
 );
 
 CREATE TABLE artist_member (
     artist_id BIGINT NOT NULL,
-    id BIGINT NOT NULL,
-    name TEXT NOT NULL
+    id BIGINT,
+    name TEXT
 );

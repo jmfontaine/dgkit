@@ -322,17 +322,16 @@ def _parse_identifiers(parent: Element | None) -> list[Identifier]:
         return []
     identifiers = []
     for id_elem in parent.findall("identifier"):
-        id_type = id_elem.get("type")
-        description = id_elem.get("description")
-        value = id_elem.get("value")
-        if id_type and value:
-            identifiers.append(
-                Identifier(
-                    description=description,
-                    type=id_type,
-                    value=value,
-                )
+        id_type = id_elem.get("type") or None
+        description = id_elem.get("description") or None
+        value = id_elem.get("value") or None
+        identifiers.append(
+            Identifier(
+                type=id_type,
+                description=description,
+                value=value,
             )
+        )
     return identifiers
 
 
