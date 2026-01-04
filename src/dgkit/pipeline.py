@@ -38,13 +38,9 @@ from dgkit.writers import (
 )
 
 
-# Map Discogs entity tags to their container elements
-_DISCOGS_CONTAINERS = {
-    "artist": "artists",
-    "label": "labels",
-    "master": "masters",
-    "release": "releases",
-}
+# Only labels have nested elements (sublabels contain <label> elements).
+# Other entity types (artist, master, release) don't need parent checking.
+_ENTITIES_WITH_NESTING = {"label"}
 
 
 def find_elements(
@@ -52,18 +48,17 @@ def find_elements(
 ) -> Iterator[etree._Element]:
     """Yield root-level XML elements matching tag from stream.
 
-    For Discogs entity types (artist, label, master, release), only yields
-    elements whose parent is the container element (e.g., <labels> for <label>).
-    This filters out nested elements like <label> inside <sublabels>.
+    For labels, filters out nested elements (e.g., <label> inside <sublabels>).
+    Other entity types don't have nesting and skip the parent check for performance.
     """
-    container = _DISCOGS_CONTAINERS.get(tag)
+    check_parent = tag in _ENTITIES_WITH_NESTING
     context = etree.iterparse(stream, events=("end",), tag=tag)
     count = 0
     for _, elem in context:
-        # For Discogs entities, only yield root-level elements
-        if container is not None:
+        # Only labels need parent checking to filter sublabels
+        if check_parent:
             parent = elem.getparent()
-            if parent is None or parent.tag != container:
+            if parent is None or parent.tag != "labels":
                 continue
 
         yield elem
