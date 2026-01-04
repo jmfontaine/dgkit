@@ -206,34 +206,40 @@ cog.out("```text\n{}```".format(result.output))
 │ *    files      FILES...  Discogs dump files. [required]                             │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
-│ --dsn                               TEXT                     Database connection     │
-│                                                              string (PostgreSQL:     │
-│                                                              postgresql://...,       │
-│                                                              SQLite: path or         │
-│                                                              sqlite:///...).         │
-│ --limit                             INTEGER                  Max records per file.   │
-│ --batch        -b                   INTEGER                  Batch size for database │
-│                                                              inserts.                │
-│                                                              [default: 10000]        │
-│ --overwrite    -w                                            Overwrite existing      │
-│                                                              database.               │
-│ --type         -t                   [artists|labels|masters  Entity type (if not     │
-│                                     |releases]               auto-detected).         │
-│ --drop-if                           TEXT                     Drop records matching   │
-│                                                              field=value.            │
-│ --unset                             TEXT                     Fields to set to null   │
-│                                                              (comma-separated).      │
-│ --summary          --no-summary                              Show summary.           │
-│                                                              [default: summary]      │
-│ --progress         --no-progress                             Show progress bar.      │
-│                                                              [default: progress]     │
-│ --strict                                                     Warn about unhandled    │
-│                                                              XML elements.           │
-│ --strict-fail                                                Fail on unhandled XML   │
-│                                                              data (implies           │
-│                                                              --strict).              │
-│ --help                                                       Show this message and   │
-│                                                              exit.                   │
+│ --batch            -b                   INTEGER                Batch size for        │
+│                                                                database inserts.     │
+│                                                                [default: 10000]      │
+│ --commit-interval                       INTEGER                Commit transaction    │
+│                                                                every N records       │
+│                                                                (PostgreSQL only).    │
+│ --drop-if                               TEXT                   Drop records matching │
+│                                                                field=value.          │
+│ --dsn                                   TEXT                   Database connection   │
+│                                                                string (PostgreSQL:   │
+│                                                                postgresql://...,     │
+│                                                                SQLite: path or       │
+│                                                                sqlite:///...).       │
+│ --limit                                 INTEGER                Max records per file. │
+│ --overwrite        -w                                          Overwrite existing    │
+│                                                                database.             │
+│ --progress             --no-progress                           Show progress bar.    │
+│                                                                [default: progress]   │
+│ --strict                                                       Warn about unhandled  │
+│                                                                XML elements.         │
+│ --strict-fail                                                  Fail on unhandled XML │
+│                                                                data (implies         │
+│                                                                --strict).            │
+│ --summary              --no-summary                            Show summary.         │
+│                                                                [default: summary]    │
+│ --type             -t                   [artists|labels|maste  Entity type (if not   │
+│                                         rs|releases]           auto-detected).       │
+│ --unset                                 TEXT                   Fields to set to null │
+│                                                                (comma-separated).    │
+│ --verbose          -v                                          Show detailed         │
+│                                                                database operation    │
+│                                                                info.                 │
+│ --help                                                         Show this message and │
+│                                                                exit.                 │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
 ```

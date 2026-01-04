@@ -220,13 +220,13 @@ def _parse_formats(parent: Element | None) -> list[Format]:
     formats = []
     for format_elem in parent.findall("format"):
         name = format_elem.get("name")
-        quantity_text = format_elem.get("qty")
+        quantity = format_elem.get("qty")
         text = format_elem.get("text")
-        if name and quantity_text:
+        if name and quantity:
             formats.append(
                 Format(
                     name=name,
-                    quantity=int(quantity_text),
+                    quantity=quantity,
                     text=text,
                     descriptions=(
                         [e.text for e in p.findall("description") if e.text]

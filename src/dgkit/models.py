@@ -78,7 +78,10 @@ class Format:
     """Physical format of a release."""
 
     name: str | None
-    quantity: int | None
+    # KLUDGE: Should be int, but some Discogs releases have values exceeding BIGINT.
+    # Example: "1000000000000000000000000000000000000000000000000000000000000001"
+    # See: https://www.discogs.com/release/8262262
+    quantity: str | None
     text: str | None
     descriptions: list[str] = field(default_factory=list)
 

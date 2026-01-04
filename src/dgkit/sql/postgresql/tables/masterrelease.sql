@@ -29,7 +29,7 @@ CREATE TABLE masterrelease_video (
     masterrelease_id BIGINT NOT NULL,
     src TEXT,
     duration BIGINT,
-    embed BIGINT,
+    embed BOOLEAN,
     title TEXT,
     description TEXT
 );

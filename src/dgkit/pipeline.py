@@ -38,13 +38,34 @@ from dgkit.writers import (
 )
 
 
+# Map Discogs entity tags to their container elements
+_DISCOGS_CONTAINERS = {
+    "artist": "artists",
+    "label": "labels",
+    "master": "masters",
+    "release": "releases",
+}
+
+
 def find_elements(
     stream: IO[bytes], tag: str, limit: int | None = None
 ) -> Iterator[etree._Element]:
-    """Yield XML elements matching tag from stream."""
+    """Yield root-level XML elements matching tag from stream.
+
+    For Discogs entity types (artist, label, master, release), only yields
+    elements whose parent is the container element (e.g., <labels> for <label>).
+    This filters out nested elements like <label> inside <sublabels>.
+    """
+    container = _DISCOGS_CONTAINERS.get(tag)
     context = etree.iterparse(stream, events=("end",), tag=tag)
     count = 0
     for _, elem in context:
+        # For Discogs entities, only yield root-level elements
+        if container is not None:
+            parent = elem.getparent()
+            if parent is None or parent.tag != container:
+                continue
+
         yield elem
         elem.clear()
         while elem.getprevious() is not None:
@@ -317,6 +338,7 @@ def load(
     paths: list[Path],
     dsn: str,
     batch_size: int = 10000,
+    commit_interval: int | None = None,
     entity_type: str | None = None,
     fail_on_unhandled: bool = False,
     filters: list[Filter] | None = None,
@@ -324,6 +346,7 @@ def load(
     show_progress: bool = False,
     show_summary: bool = True,
     strict: bool = False,
+    verbose: bool = False,
 ) -> Summary | None:
     """Load XML dumps into a database."""
     valid_paths = [p for p in paths if p.is_file()]
@@ -337,7 +360,13 @@ def load(
         )
         tracker = ProgressTracker(stack, limit, show_progress, valid_paths)
 
-        with get_database_writer(database, batch_size=batch_size, dsn=dsn) as writer:
+        with get_database_writer(
+            database,
+            batch_size=batch_size,
+            commit_interval=commit_interval,
+            dsn=dsn,
+            verbose=verbose,
+        ) as writer:
             for path in valid_paths:
                 execute(
                     fail_on_unhandled=fail_on_unhandled,

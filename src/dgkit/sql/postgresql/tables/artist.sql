@@ -4,8 +4,8 @@ CREATE TABLE artist (
     real_name TEXT,
     profile TEXT,
     data_quality TEXT,
-    urls TEXT,
-    name_variations TEXT
+    urls TEXT [],
+    name_variations TEXT []
 );
 
 CREATE TABLE artist_alias (

@@ -368,7 +368,7 @@ class TestReleaseParser:
             )
         ]
         assert release.formats == [
-            Format(name="Vinyl", quantity=2, text="", descriptions=['12"'])
+            Format(name="Vinyl", quantity="2", text="", descriptions=['12"'])
         ]
         assert release.genres == ["Electronic"]
         assert release.styles == ["Deep House"]

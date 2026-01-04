@@ -71,15 +71,30 @@ def _singularize(name: str) -> str:
     return name
 
 
-def _dataclass_to_row(obj: Any) -> tuple:
-    """Convert a dataclass to a tuple, serializing lists/tuples as JSON."""
+def _dataclass_to_row(obj: Any, serialize_lists: bool = True) -> tuple:
+    """Convert a dataclass to a tuple.
+
+    Args:
+        obj: Dataclass instance to convert.
+        serialize_lists: If True, serialize lists as JSON strings (for SQLite).
+            If False, pass lists directly for PostgreSQL arrays, but still
+            serialize lists of dataclasses as JSON.
+    """
     values = []
     for f in fields(obj):
         value = getattr(obj, f.name)
         if isinstance(value, (list, tuple)):
-            # Convert any nested dataclasses to dicts for JSON serialization
-            serializable = [asdict(v) if is_dataclass(v) else v for v in value]
-            values.append(json.dumps(serializable))
+            if serialize_lists:
+                # SQLite: serialize all lists as JSON
+                serializable = [asdict(v) if is_dataclass(v) else v for v in value]
+                values.append(json.dumps(serializable))
+            elif value and is_dataclass(value[0]) and not isinstance(value[0], type):
+                # PostgreSQL: serialize lists of dataclasses as JSONB
+                serializable = [asdict(v) for v in value]
+                values.append(json.dumps(serializable))
+            else:
+                # PostgreSQL: pass primitive lists directly for array types
+                values.append(list(value))
         else:
             values.append(value)
     return tuple(values)
@@ -505,6 +520,8 @@ class SqliteWriter:
             value = _get_field_value(record, field_name)
             if isinstance(value, (list, tuple)):
                 main_values.append(json.dumps(value))
+            elif is_dataclass(value) and not isinstance(value, type):
+                main_values.append(json.dumps(asdict(value)))
             else:
                 main_values.append(value)
 
@@ -542,15 +559,33 @@ class PostgresWriter:
 
     aggregates_inputs = True
 
-    def __init__(self, dsn: str, batch_size: int = 10000, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        dsn: str,
+        batch_size: int = 10000,
+        commit_interval: int | None = None,
+        verbose: bool = False,
+        **kwargs: Any,
+    ) -> None:
         self.dsn = dsn
         self.batch_size = batch_size
+        self.commit_interval = commit_interval
+        self.verbose = verbose
         self._conn: "psycopg.Connection | None" = None
         self._tables: set[str] = set()
         self._buffers: dict[str, list[tuple]] = {}
         self._junction_tables: dict[tuple[str, str], tuple[str, type]] = {}
         self._junction_fields: dict[str, set[str]] = {}
         self._table_columns: dict[str, list[str]] = {}
+        self._last_error: BaseException | None = None
+        self._records_since_commit: int = 0
+
+    def _log(self, message: str) -> None:
+        """Log a message if verbose mode is enabled."""
+        if self.verbose:
+            import sys
+
+            print(f"[PostgresWriter] {message}", file=sys.stderr)
 
     def __enter__(self) -> Self:
         import psycopg
@@ -583,17 +618,30 @@ class PostgresWriter:
         annotations = type(record).__annotations__
         junction_fields: set[str] = set()
 
-        conn.execute(
-            pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
-                pgsql.Identifier(table_name)
+        try:
+            conn.execute(
+                pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
+                    pgsql.Identifier(table_name)
+                )
             )
-        )
+        except Exception as e:
+            self._last_error = e
+            self._log(f"Error dropping table {table_name}: {e}")
+            conn.rollback()
+            raise
 
         # Try to load schema from SQL file
         schema_sql = _load_sql("postgresql", "tables", table_name)
         if schema_sql:
-            # SQL loaded from package resources is trusted
-            conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
+            try:
+                # SQL loaded from package resources is trusted
+                conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
+            except Exception as e:
+                self._last_error = e
+                self._log(f"Error creating table {table_name}: {e}")
+                self._log(f"  SQL: {schema_sql[:200]}...")
+                conn.rollback()
+                raise
             # Extract columns from SQL to determine which fields are junction tables
             schema_columns = _extract_columns_from_sql(schema_sql)
         else:
@@ -644,82 +692,98 @@ class PostgresWriter:
                         pgsql.SQL("{} ").format(pgsql.Identifier(field_name))
                         + pgsql.SQL(cast(LiteralString, pg_type))
                     )
-            conn.execute(
-                pgsql.SQL("CREATE TABLE {} ({})").format(
-                    pgsql.Identifier(table_name), pgsql.SQL(", ").join(col_defs)
+            try:
+                conn.execute(
+                    pgsql.SQL("CREATE TABLE {} ({})").format(
+                        pgsql.Identifier(table_name), pgsql.SQL(", ").join(col_defs)
+                    )
                 )
-            )
+            except Exception as e:
+                self._last_error = e
+                self._log(f"Error creating table {table_name} (dynamic schema): {e}")
+                conn.rollback()
+                raise
 
         self._tables.add(table_name)
         self._buffers[table_name] = []
 
         for field in junction_fields:
             junction_table, elem_type = self._junction_tables[(table_name, field)]
-            conn.execute(
-                pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
-                    pgsql.Identifier(junction_table)
+            try:
+                conn.execute(
+                    pgsql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(
+                        pgsql.Identifier(junction_table)
+                    )
                 )
-            )
 
-            fk_col = f"{table_name}_id"
-            if elem_type is int:
-                ref_col = f"{_singularize(field)}_id"
-                junction_columns = [fk_col, ref_col]
-            elif elem_type is str:
-                val_col = _singularize(field)
-                junction_columns = [fk_col, val_col]
-            elif is_dataclass(elem_type):
-                junction_columns = [fk_col] + _get_type_field_names(elem_type)
-            else:
-                junction_columns = [fk_col]
-            self._table_columns[junction_table] = junction_columns
+                fk_col = f"{table_name}_id"
+                if elem_type is int:
+                    ref_col = f"{_singularize(field)}_id"
+                    junction_columns = [fk_col, ref_col]
+                elif elem_type is str:
+                    val_col = _singularize(field)
+                    junction_columns = [fk_col, val_col]
+                elif is_dataclass(elem_type):
+                    junction_columns = [fk_col] + _get_type_field_names(elem_type)
+                else:
+                    junction_columns = [fk_col]
+                self._table_columns[junction_table] = junction_columns
 
-            schema_sql = _load_sql("postgresql", "tables", junction_table)
-            if schema_sql:
-                # SQL loaded from package resources is trusted
-                conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
-            elif elem_type is int:
-                ref_col = f"{_singularize(field)}_id"
-                conn.execute(
-                    pgsql.SQL(
-                        "CREATE TABLE {} ("
-                        "{} BIGINT NOT NULL, "
-                        "{} BIGINT NOT NULL, "
-                        "PRIMARY KEY ({}, {}))"
-                    ).format(
-                        pgsql.Identifier(junction_table),
-                        pgsql.Identifier(fk_col),
-                        pgsql.Identifier(ref_col),
-                        pgsql.Identifier(fk_col),
-                        pgsql.Identifier(ref_col),
+                schema_sql = _load_sql("postgresql", "tables", junction_table)
+                if schema_sql:
+                    # SQL loaded from package resources is trusted
+                    conn.execute(pgsql.SQL(cast(LiteralString, schema_sql)))
+                elif elem_type is int:
+                    ref_col = f"{_singularize(field)}_id"
+                    conn.execute(
+                        pgsql.SQL(
+                            "CREATE TABLE {} ("
+                            "{} BIGINT NOT NULL, "
+                            "{} BIGINT NOT NULL, "
+                            "PRIMARY KEY ({}, {}))"
+                        ).format(
+                            pgsql.Identifier(junction_table),
+                            pgsql.Identifier(fk_col),
+                            pgsql.Identifier(ref_col),
+                            pgsql.Identifier(fk_col),
+                            pgsql.Identifier(ref_col),
+                        )
                     )
-                )
-            elif elem_type is str:
-                val_col = _singularize(field)
-                conn.execute(
-                    pgsql.SQL(
-                        "CREATE TABLE {} ({} BIGINT NOT NULL, {} TEXT NOT NULL)"
-                    ).format(
-                        pgsql.Identifier(junction_table),
-                        pgsql.Identifier(fk_col),
-                        pgsql.Identifier(val_col),
+                elif elem_type is str:
+                    val_col = _singularize(field)
+                    conn.execute(
+                        pgsql.SQL(
+                            "CREATE TABLE {} ({} BIGINT NOT NULL, {} TEXT NOT NULL)"
+                        ).format(
+                            pgsql.Identifier(junction_table),
+                            pgsql.Identifier(fk_col),
+                            pgsql.Identifier(val_col),
+                        )
                     )
-                )
-            elif is_dataclass(elem_type):
-                col_defs: list[pgsql.Composable] = [
-                    pgsql.SQL("{} BIGINT NOT NULL").format(pgsql.Identifier(fk_col))
-                ]
-                for elem_field, elem_field_type in elem_type.__annotations__.items():
-                    pg_type = POSTGRES_TYPE_MAP.get(elem_field_type, "TEXT")
-                    col_defs.append(
-                        pgsql.SQL("{} ").format(pgsql.Identifier(elem_field))
-                        + pgsql.SQL(cast(LiteralString, pg_type))
+                elif is_dataclass(elem_type):
+                    col_defs: list[pgsql.Composable] = [
+                        pgsql.SQL("{} BIGINT NOT NULL").format(pgsql.Identifier(fk_col))
+                    ]
+                    for (
+                        elem_field,
+                        elem_field_type,
+                    ) in elem_type.__annotations__.items():
+                        pg_type = POSTGRES_TYPE_MAP.get(elem_field_type, "TEXT")
+                        col_defs.append(
+                            pgsql.SQL("{} ").format(pgsql.Identifier(elem_field))
+                            + pgsql.SQL(cast(LiteralString, pg_type))
+                        )
+                    conn.execute(
+                        pgsql.SQL("CREATE TABLE {} ({})").format(
+                            pgsql.Identifier(junction_table),
+                            pgsql.SQL(", ").join(col_defs),
+                        )
                     )
-                conn.execute(
-                    pgsql.SQL("CREATE TABLE {} ({})").format(
-                        pgsql.Identifier(junction_table), pgsql.SQL(", ").join(col_defs)
-                    )
-                )
+            except Exception as e:
+                self._last_error = e
+                self._log(f"Error creating junction table {junction_table}: {e}")
+                conn.rollback()
+                raise
 
             self._tables.add(junction_table)
             self._buffers[junction_table] = []
@@ -737,9 +801,15 @@ class PostgresWriter:
                 continue
             index_sql = _load_sql("postgresql", "indices", table_name)
             if index_sql:
-                # SQL loaded from package resources is trusted
-                self._conn.execute(pgsql.SQL(cast(LiteralString, index_sql)))
-                executed_files.add(sql_file)
+                try:
+                    # SQL loaded from package resources is trusted
+                    self._conn.execute(pgsql.SQL(cast(LiteralString, index_sql)))
+                    executed_files.add(sql_file)
+                except Exception as e:
+                    self._last_error = e
+                    self._log(f"Error creating indices for {table_name}: {e}")
+                    self._conn.rollback()
+                    raise
 
     def _flush(self, table_name: str) -> None:
         """Flush buffered records to the database using COPY."""
@@ -750,20 +820,32 @@ class PostgresWriter:
             return
 
         columns = self._table_columns.get(table_name)
-        if columns:
-            col_ids = pgsql.SQL(", ").join(pgsql.Identifier(c) for c in columns)
-            query = pgsql.SQL("COPY {} ({}) FROM STDIN").format(
-                pgsql.Identifier(table_name), col_ids
-            )
-            with self._conn.cursor().copy(query) as copy:
-                for row in buffer:
-                    copy.write_row(row)
-        else:
-            query = pgsql.SQL("COPY {} FROM STDIN").format(pgsql.Identifier(table_name))
-            with self._conn.cursor().copy(query) as copy:
-                for row in buffer:
-                    copy.write_row(row)
-        buffer.clear()
+        try:
+            if columns:
+                col_ids = pgsql.SQL(", ").join(pgsql.Identifier(c) for c in columns)
+                query = pgsql.SQL("COPY {} ({}) FROM STDIN").format(
+                    pgsql.Identifier(table_name), col_ids
+                )
+                with self._conn.cursor().copy(query) as copy:
+                    for row in buffer:
+                        copy.write_row(row)
+            else:
+                query = pgsql.SQL("COPY {} FROM STDIN").format(
+                    pgsql.Identifier(table_name)
+                )
+                with self._conn.cursor().copy(query) as copy:
+                    for row in buffer:
+                        copy.write_row(row)
+            buffer.clear()
+        except Exception as e:
+            self._last_error = e
+            self._log(f"Error flushing {table_name}: {e}")
+            self._log(f"  Buffer had {len(buffer)} rows")
+            if buffer and columns:
+                self._log(f"  Columns: {columns}")
+                self._log(f"  Sample row: {buffer[0]}")
+            self._conn.rollback()
+            raise
 
     def _flush_all(self) -> None:
         """Flush all buffered records."""
@@ -784,7 +866,15 @@ class PostgresWriter:
                 continue
             value = _get_field_value(record, field_name)
             if isinstance(value, (list, tuple)):
-                main_values.append(json.dumps(value))
+                # Check if list contains dataclasses -> JSONB, else -> array
+                if value and is_dataclass(value[0]) and not isinstance(value[0], type):
+                    serializable = [asdict(v) for v in value]
+                    main_values.append(json.dumps(serializable))
+                else:
+                    # Pass list directly for PostgreSQL array types
+                    main_values.append(list(value))
+            elif is_dataclass(value) and not isinstance(value, type):
+                main_values.append(json.dumps(asdict(value)))
             else:
                 main_values.append(value)
 
@@ -801,10 +891,18 @@ class PostgresWriter:
                         self._buffers[junction_table].append((record_id, item))
                     elif is_dataclass(elem_type):
                         self._buffers[junction_table].append(
-                            (record_id, *_dataclass_to_row(item))
+                            (record_id, *_dataclass_to_row(item, serialize_lists=False))
                         )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
+
+        # Periodic commits for resilience during long loads
+        if self.commit_interval is not None:
+            self._records_since_commit += 1
+            if self._records_since_commit >= self.commit_interval:
+                self._flush_all()
+                self._conn.commit()
+                self._records_since_commit = 0
 
 
 FILE_WRITERS: dict[FileFormat, type[Writer]] = {

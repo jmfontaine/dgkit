@@ -39,7 +39,7 @@ CREATE TABLE release_extraartist (
 CREATE TABLE release_format (
     release_id INTEGER NOT NULL,
     name TEXT,
-    quantity INTEGER,
+    quantity TEXT,
     "text" TEXT,
     descriptions TEXT
 );
@@ -87,9 +87,9 @@ CREATE TABLE release_track (
 
 CREATE TABLE release_video (
     release_id INTEGER NOT NULL,
-    src TEXT,
+    description TEXT,
     duration INTEGER,
     embed INTEGER,
-    title TEXT,
-    description TEXT
+    src TEXT,
+    title TEXT
 );

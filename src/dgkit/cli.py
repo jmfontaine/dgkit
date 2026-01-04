@@ -180,6 +180,19 @@ def convert_cmd(
 @app.command(name="load", help="Load data dumps into a database.")
 def load_cmd(
     files: Annotated[list[Path], typer.Argument(help="Discogs dump files.")],
+    batch: Annotated[
+        int, typer.Option("--batch", "-b", help="Batch size for database inserts.")
+    ] = 10000,
+    commit_interval: Annotated[
+        int | None,
+        typer.Option(
+            "--commit-interval",
+            help="Commit transaction every N records (PostgreSQL only).",
+        ),
+    ] = None,
+    drop_if: Annotated[
+        list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
+    ] = [],
     dsn: Annotated[
         str | None,
         typer.Option(
@@ -188,31 +201,9 @@ def load_cmd(
         ),
     ] = None,
     limit: Annotated[int | None, typer.Option(help="Max records per file.")] = None,
-    batch: Annotated[
-        int, typer.Option("--batch", "-b", help="Batch size for database inserts.")
-    ] = 10000,
     overwrite: Annotated[
         bool, typer.Option("--overwrite", "-w", help="Overwrite existing database.")
     ] = False,
-    entity_type: Annotated[
-        EntityType | None,
-        typer.Option(
-            "--type",
-            "-t",
-            case_sensitive=False,
-            help="Entity type (if not auto-detected).",
-        ),
-    ] = None,
-    drop_if: Annotated[
-        list[str], typer.Option("--drop-if", help="Drop records matching field=value.")
-    ] = [],
-    unset: Annotated[
-        list[str],
-        typer.Option("--unset", help="Fields to set to null (comma-separated)."),
-    ] = [],
-    summary: Annotated[
-        bool, typer.Option("--summary/--no-summary", help="Show summary.")
-    ] = True,
     progress: Annotated[
         bool, typer.Option("--progress/--no-progress", help="Show progress bar.")
     ] = True,
@@ -224,6 +215,26 @@ def load_cmd(
         typer.Option(
             "--strict-fail", help="Fail on unhandled XML data (implies --strict)."
         ),
+    ] = False,
+    summary: Annotated[
+        bool, typer.Option("--summary/--no-summary", help="Show summary.")
+    ] = True,
+    entity_type: Annotated[
+        EntityType | None,
+        typer.Option(
+            "--type",
+            "-t",
+            case_sensitive=False,
+            help="Entity type (if not auto-detected).",
+        ),
+    ] = None,
+    unset: Annotated[
+        list[str],
+        typer.Option("--unset", help="Fields to set to null (comma-separated)."),
+    ] = [],
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Show detailed database operation info."),
     ] = False,
 ) -> None:
     # --strict-fail implies --strict
@@ -253,6 +264,7 @@ def load_cmd(
         database,
         files,
         batch_size=batch,
+        commit_interval=commit_interval,
         dsn=dsn,
         entity_type=entity_type.value if entity_type else None,
         fail_on_unhandled=strict_fail,
@@ -261,6 +273,7 @@ def load_cmd(
         show_progress=progress,
         show_summary=summary,
         strict=strict,
+        verbose=verbose,
     )
     if result:
         display_result(result)

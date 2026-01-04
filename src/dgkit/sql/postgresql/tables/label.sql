@@ -4,8 +4,8 @@ CREATE TABLE label (
     contact_info TEXT,
     profile TEXT,
     data_quality TEXT,
-    urls TEXT,
-    parent_label TEXT
+    urls TEXT [],
+    parent_label JSONB
 );
 
 CREATE TABLE label_sublabel (

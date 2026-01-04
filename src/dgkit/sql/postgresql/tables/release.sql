@@ -7,7 +7,7 @@ CREATE TABLE "release" (
     notes TEXT,
     data_quality TEXT,
     master_id BIGINT,
-    is_main_release BIGINT
+    is_main_release BOOLEAN
 );
 
 CREATE TABLE release_artist (
@@ -39,9 +39,9 @@ CREATE TABLE release_extraartist (
 CREATE TABLE release_format (
     release_id BIGINT NOT NULL,
     name TEXT,
-    quantity BIGINT,
+    quantity TEXT,
     text TEXT,
-    descriptions TEXT
+    descriptions TEXT []
 );
 
 CREATE TABLE release_genre (
@@ -80,16 +80,16 @@ CREATE TABLE release_track (
     position TEXT,
     title TEXT,
     duration TEXT,
-    artists TEXT,
-    extra_artists TEXT,
-    sub_tracks TEXT
+    artists JSONB,
+    extra_artists JSONB,
+    sub_tracks JSONB
 );
 
 CREATE TABLE release_video (
     release_id BIGINT NOT NULL,
-    src TEXT,
+    description TEXT,
     duration BIGINT,
-    embed BIGINT,
-    title TEXT,
-    description TEXT
+    embed BOOLEAN,
+    src TEXT,
+    title TEXT
 );
