@@ -77,6 +77,17 @@ lint:
     sqlfluff lint src/dgkit/sql           # SQL files linting
     npx markdownlint-cli2 "**/*.md"       # Markdown files linting
 
+# Record demo GIF
+demo:
+    #!/usr/bin/env bash
+    set -e
+    mkdir -p /tmp/dgkit "{{justfile_directory()}}/docs/user/assets"
+    ln -sf ~/Data/Discogs/2026/2026-01-01/discogs_20260101_releases.xml.gz /tmp/dgkit/releases.xml.gz
+    cd /tmp/dgkit
+    vhs "{{justfile_directory()}}/docs/user/assets/demo.tape"
+    mv demo.gif "{{justfile_directory()}}/docs/user/assets/"
+    rm -rf /tmp/dgkit
+
 # Set up development environment
 setup:
     uv sync                  # Install dependencies

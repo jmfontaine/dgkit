@@ -2,6 +2,8 @@
 
 A fast, easy-to-use tool for converting, and loading data from [Discogs data dumps](https://www.discogs.com/data/) into various formats and databases.
 
+![Demo](docs/user/assets/demo.gif)
+
 ## Installation
 
 TODO
@@ -332,4 +334,4 @@ dgkit load -d sqlite --type releases dump.xml.gz
 
 ## License
 
-dgkit is licensed under the [Apache License 2.0](./LICENSE.txt).
+dgkit is licensed under the [Apache License 2.0](LICENSE.txt).
