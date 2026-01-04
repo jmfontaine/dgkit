@@ -206,33 +206,34 @@ cog.out("```text\n{}```".format(result.output))
 │ *    files      FILES...  Discogs dump files. [required]                             │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────────────╮
-│ *  --database     -d                   [postgresql|sqlite]    Database type.         │
-│                                                               [required]             │
-│    --dsn                               TEXT                   Database connection    │
-│                                                               string.                │
-│    --limit                             INTEGER                Max records per file.  │
-│    --batch        -b                   INTEGER                Batch size for         │
-│                                                               database inserts.      │
-│                                                               [default: 10000]       │
-│    --overwrite    -w                                          Overwrite existing     │
-│                                                               database.              │
-│    --type         -t                   [artists|labels|maste  Entity type (if not    │
-│                                        rs|releases]           auto-detected).        │
-│    --drop-if                           TEXT                   Drop records matching  │
-│                                                               field=value.           │
-│    --unset                             TEXT                   Fields to set to null  │
-│                                                               (comma-separated).     │
-│    --summary          --no-summary                            Show summary.          │
-│                                                               [default: summary]     │
-│    --progress         --no-progress                           Show progress bar.     │
-│                                                               [default: progress]    │
-│    --strict                                                   Warn about unhandled   │
-│                                                               XML elements.          │
-│    --strict-fail                                              Fail on unhandled XML  │
-│                                                               data (implies          │
-│                                                               --strict).             │
-│    --help                                                     Show this message and  │
-│                                                               exit.                  │
+│ --dsn                               TEXT                     Database connection     │
+│                                                              string (PostgreSQL:     │
+│                                                              postgresql://...,       │
+│                                                              SQLite: path or         │
+│                                                              sqlite:///...).         │
+│ --limit                             INTEGER                  Max records per file.   │
+│ --batch        -b                   INTEGER                  Batch size for database │
+│                                                              inserts.                │
+│                                                              [default: 10000]        │
+│ --overwrite    -w                                            Overwrite existing      │
+│                                                              database.               │
+│ --type         -t                   [artists|labels|masters  Entity type (if not     │
+│                                     |releases]               auto-detected).         │
+│ --drop-if                           TEXT                     Drop records matching   │
+│                                                              field=value.            │
+│ --unset                             TEXT                     Fields to set to null   │
+│                                                              (comma-separated).      │
+│ --summary          --no-summary                              Show summary.           │
+│                                                              [default: summary]      │
+│ --progress         --no-progress                             Show progress bar.      │
+│                                                              [default: progress]     │
+│ --strict                                                     Warn about unhandled    │
+│                                                              XML elements.           │
+│ --strict-fail                                                Fail on unhandled XML   │
+│                                                              data (implies           │
+│                                                              --strict).              │
+│ --help                                                       Show this message and   │
+│                                                              exit.                   │
 ╰──────────────────────────────────────────────────────────────────────────────────────╯
 
 ```
@@ -245,90 +246,90 @@ cog.out("```text\n{}```".format(result.output))
 <!-- [[[cog
 cog.out(f"""```shell
 # Load releases into SQLite (database name auto-generated from input files)
-dgkit load -d sqlite discogs_{snapshot}_releases.xml.gz
+dgkit load discogs_{snapshot}_releases.xml.gz
 
 # Load into a specific SQLite database
-dgkit load -d sqlite --dsn discogs.db discogs_{snapshot}_releases.xml.gz
+dgkit load --dsn discogs.db discogs_{snapshot}_releases.xml.gz
 
 # Load into PostgreSQL
-dgkit load -d postgresql --dsn "postgresql://user:pass@localhost/discogs" discogs_{snapshot}_releases.xml.gz
+dgkit load --dsn "postgresql://user:pass@localhost/discogs" discogs_{snapshot}_releases.xml.gz
 
 # Load first 1000 records only (useful for testing)
-dgkit load -d sqlite --limit 1000 discogs_{snapshot}_releases.xml.gz
+dgkit load --limit 1000 discogs_{snapshot}_releases.xml.gz
 
 # Use smaller batch size for memory-constrained environments
-dgkit load -d sqlite -b 1000 discogs_{snapshot}_releases.xml.gz
+dgkit load -b 1000 discogs_{snapshot}_releases.xml.gz
 
 # Overwrite existing database without prompting
-dgkit load -d sqlite -w discogs_{snapshot}_releases.xml.gz
+dgkit load -w discogs_{snapshot}_releases.xml.gz
 
 # Load multiple entity types into the same database
-dgkit load -d sqlite --dsn discogs.db discogs_{snapshot}_artists.xml.gz discogs_{snapshot}_labels.xml.gz discogs_{snapshot}_releases.xml.gz
+dgkit load --dsn discogs.db discogs_{snapshot}_artists.xml.gz discogs_{snapshot}_labels.xml.gz discogs_{snapshot}_releases.xml.gz
 
 # Load all dump files using a wildcard
-dgkit load -d sqlite --dsn discogs.db discogs_{snapshot}_*.xml.gz
+dgkit load --dsn discogs.db discogs_{snapshot}_*.xml.gz
 
 # Drop records with specific data quality
-dgkit load -d sqlite --drop-if "data_quality=Needs Vote" discogs_{snapshot}_releases.xml.gz
+dgkit load --drop-if "data_quality=Needs Vote" discogs_{snapshot}_releases.xml.gz
 
 # Clear specific fields before loading
-dgkit load -d sqlite --unset notes,images discogs_{snapshot}_releases.xml.gz
+dgkit load --unset notes,images discogs_{snapshot}_releases.xml.gz
 
 # Validate XML for unhandled elements
-dgkit load -d sqlite --strict discogs_{snapshot}_releases.xml.gz
+dgkit load --strict discogs_{snapshot}_releases.xml.gz
 
 # Fail on any unhandled XML data
-dgkit load -d sqlite --strict-fail discogs_{snapshot}_releases.xml.gz
+dgkit load --strict-fail discogs_{snapshot}_releases.xml.gz
 
 # Load a file with entity type in filename (auto-detected)
-dgkit load -d sqlite my_releases_backup.xml.gz
+dgkit load my_releases_backup.xml.gz
 
 # Explicit type override when filename has no entity type
-dgkit load -d sqlite --type releases dump.xml.gz
+dgkit load --type releases dump.xml.gz
 ```""")
 ]]] -->
 ```shell
 # Load releases into SQLite (database name auto-generated from input files)
-dgkit load -d sqlite discogs_20260101_releases.xml.gz
+dgkit load discogs_20260101_releases.xml.gz
 
 # Load into a specific SQLite database
-dgkit load -d sqlite --dsn discogs.db discogs_20260101_releases.xml.gz
+dgkit load --dsn discogs.db discogs_20260101_releases.xml.gz
 
 # Load into PostgreSQL
-dgkit load -d postgresql --dsn "postgresql://user:pass@localhost/discogs" discogs_20260101_releases.xml.gz
+dgkit load --dsn "postgresql://user:pass@localhost/discogs" discogs_20260101_releases.xml.gz
 
 # Load first 1000 records only (useful for testing)
-dgkit load -d sqlite --limit 1000 discogs_20260101_releases.xml.gz
+dgkit load --limit 1000 discogs_20260101_releases.xml.gz
 
 # Use smaller batch size for memory-constrained environments
-dgkit load -d sqlite -b 1000 discogs_20260101_releases.xml.gz
+dgkit load -b 1000 discogs_20260101_releases.xml.gz
 
 # Overwrite existing database without prompting
-dgkit load -d sqlite -w discogs_20260101_releases.xml.gz
+dgkit load -w discogs_20260101_releases.xml.gz
 
 # Load multiple entity types into the same database
-dgkit load -d sqlite --dsn discogs.db discogs_20260101_artists.xml.gz discogs_20260101_labels.xml.gz discogs_20260101_releases.xml.gz
+dgkit load --dsn discogs.db discogs_20260101_artists.xml.gz discogs_20260101_labels.xml.gz discogs_20260101_releases.xml.gz
 
 # Load all dump files using a wildcard
-dgkit load -d sqlite --dsn discogs.db discogs_20260101_*.xml.gz
+dgkit load --dsn discogs.db discogs_20260101_*.xml.gz
 
 # Drop records with specific data quality
-dgkit load -d sqlite --drop-if "data_quality=Needs Vote" discogs_20260101_releases.xml.gz
+dgkit load --drop-if "data_quality=Needs Vote" discogs_20260101_releases.xml.gz
 
 # Clear specific fields before loading
-dgkit load -d sqlite --unset notes,images discogs_20260101_releases.xml.gz
+dgkit load --unset notes,images discogs_20260101_releases.xml.gz
 
 # Validate XML for unhandled elements
-dgkit load -d sqlite --strict discogs_20260101_releases.xml.gz
+dgkit load --strict discogs_20260101_releases.xml.gz
 
 # Fail on any unhandled XML data
-dgkit load -d sqlite --strict-fail discogs_20260101_releases.xml.gz
+dgkit load --strict-fail discogs_20260101_releases.xml.gz
 
 # Load a file with entity type in filename (auto-detected)
-dgkit load -d sqlite my_releases_backup.xml.gz
+dgkit load my_releases_backup.xml.gz
 
 # Explicit type override when filename has no entity type
-dgkit load -d sqlite --type releases dump.xml.gz
+dgkit load --type releases dump.xml.gz
 ```
 <!-- [[[end]]] -->
 

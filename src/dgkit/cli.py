@@ -20,6 +20,15 @@ from dgkit.sampler import build_sample_path, sample
 from dgkit.summary import Summary, _format_duration
 from dgkit.types import Compression, DatabaseType, EntityType, FileFormat
 
+
+def _infer_database_type(dsn: str) -> DatabaseType:
+    """Infer database type from DSN string."""
+    dsn_lower = dsn.lower()
+    if dsn_lower.startswith("postgresql://") or dsn_lower.startswith("postgres://"):
+        return DatabaseType.postgresql
+    return DatabaseType.sqlite
+
+
 # Global debug flag
 _debug = False
 _console = Console()
@@ -171,12 +180,12 @@ def convert_cmd(
 @app.command(name="load", help="Load data dumps into a database.")
 def load_cmd(
     files: Annotated[list[Path], typer.Argument(help="Discogs dump files.")],
-    database: Annotated[
-        DatabaseType,
-        typer.Option("--database", "-d", case_sensitive=False, help="Database type."),
-    ],
     dsn: Annotated[
-        str | None, typer.Option("--dsn", help="Database connection string.")
+        str | None,
+        typer.Option(
+            "--dsn",
+            help="Database connection string (PostgreSQL: postgresql://..., SQLite: path or sqlite:///...).",
+        ),
     ] = None,
     limit: Annotated[int | None, typer.Option(help="Max records per file.")] = None,
     batch: Annotated[
@@ -223,10 +232,13 @@ def load_cmd(
 
     valid_files = [f for f in files if f.is_file()]
 
-    # Derive DSN from input filenames if not provided
+    # Derive DSN from input filenames if not provided (defaults to SQLite)
     if dsn is None:
         path = build_database_path(valid_files, Path("."))
         dsn = str(path)
+
+    # Infer database type from DSN
+    database = _infer_database_type(dsn)
 
     # Check for existing database (only for SQLite file-based DSNs)
     if database == DatabaseType.sqlite and ":memory:" not in dsn:

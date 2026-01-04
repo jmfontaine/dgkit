@@ -102,9 +102,7 @@ class TestLoadCommandPostgres:
         self, cli_runner, tmp_gzip_file, sample_artists_xml, postgres_dsn
     ):
         gzip_path = tmp_gzip_file("discogs_20251201_artists.xml.gz", sample_artists_xml)
-        result = cli_runner.invoke(
-            app, ["load", str(gzip_path), "-d", "postgresql", "--dsn", postgres_dsn]
-        )
+        result = cli_runner.invoke(app, ["load", str(gzip_path), "--dsn", postgres_dsn])
         assert result.exit_code == 0
 
         with psycopg.connect(postgres_dsn) as conn:
@@ -121,8 +119,6 @@ class TestLoadCommandPostgres:
             [
                 "load",
                 str(gzip_path),
-                "-d",
-                "postgresql",
                 "--dsn",
                 postgres_dsn,
                 "--drop-if",

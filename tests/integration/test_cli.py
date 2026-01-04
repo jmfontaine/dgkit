@@ -76,9 +76,7 @@ class TestLoadCommand:
     ):
         gzip_path = tmp_gzip_file("discogs_20251201_artists.xml.gz", sample_artists_xml)
         db_path = tmp_path / "test.db"
-        result = cli_runner.invoke(
-            app, ["load", str(gzip_path), "-d", "sqlite", "--dsn", str(db_path)]
-        )
+        result = cli_runner.invoke(app, ["load", str(gzip_path), "--dsn", str(db_path)])
         assert result.exit_code == 0
         assert db_path.exists()
 
@@ -98,8 +96,6 @@ class TestLoadCommand:
             [
                 "load",
                 str(gzip_path),
-                "-d",
-                "sqlite",
                 "--dsn",
                 str(db_path),
                 "--drop-if",
