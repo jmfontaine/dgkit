@@ -1,6 +1,6 @@
 ---
 date: 2026-01-04
-status: In Progress
+status: Accepted
 ---
 
 # Parser Performance Optimization
@@ -429,9 +429,75 @@ Added `text = child.text` at the start of parser loops in 7 functions:
 fast (likely a simple C struct field access). The caching adds no benefit and slightly
 increases memory pressure. Reverting this change.
 
+### Experiment 6: NamedTuple instead of dataclass
+
+**Status:** Skipped
+
+Already using msgspec.Struct (Experiment 2), which provides similar or better performance.
+
+### Experiment 7: Cython compilation
+
+**Status:** Not attempted
+
+High effort, requires build complexity and platform-specific wheels.
+
+### Experiment 8: PyPy instead of CPython
+
+**Status:** Blocked
+
+**Hypothesis:** Running under PyPy would provide 2-5x overall speedup.
+
+**Attempt:**
+
+```bash
+uv python install pypy-3.11
+uv run --python pypy3.11 dgkit convert --format blackhole --no-progress ...
+```
+
+**Result:** Build failure. msgspec uses CPython internals (`PyLongObject->ob_digit`,
+`PyListObject->ob_item`, `_PyDict_GetItem_KnownHash`, etc.) that don't exist in PyPy.
+
+**Conclusion:** PyPy is incompatible with msgspec. To use PyPy, we would need to revert
+to dataclasses (losing the 10% gain from Experiment 2). Trade-off analysis:
+
+- Revert to dataclasses: -10% (back to ~11,700/s)
+- Run on PyPy: potentially +100-400% (23,000-58,000/s)
+
+Net gain could be significant, but requires maintaining two code paths or choosing
+one approach. Not pursuing further without explicit user request.
+
 ## Decision Outcome
 
-TBD - experiments in progress.
+**Chosen approach:** Experiments 1-4 (skip getparent, msgspec.Struct, match statements, list comprehensions)
+
+**Final performance:**
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Time (1M releases) | 85s | 76s | -11% |
+| Throughput | 11,700/s | 13,044/s | +11% |
+| Peak memory | 30 MB | 30 MB | No change |
+
+**Changes kept:**
+
+1. **Skip getparent() for non-label entities** - Cleaner code, marginal speedup
+2. **msgspec.Struct instead of dataclasses** - Primary win (+10%), faster object creation
+3. **Match statements** - Cleaner code, marginal speedup
+4. **List comprehensions** - Cleaner code, marginal speedup
+
+**Changes rejected:**
+
+1. **Cache child.text** - No measurable benefit, reverted
+
+**Not pursued:**
+
+1. **NamedTuple** - Redundant with msgspec.Struct
+2. **Cython** - High effort, build complexity
+3. **PyPy** - Incompatible with msgspec
+
+**Key insight:** The main bottleneck was object creation overhead in dataclasses. msgspec.Struct
+provided the only significant improvement. Other micro-optimizations yielded diminishing returns
+since lxml's C-level operations are already fast.
 
 ## References
 
