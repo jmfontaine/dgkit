@@ -40,12 +40,11 @@ def _parse_artist_refs(parent: Element | None) -> list[ArtistRef]:
     """Parse a list of artist references from a parent element."""
     if parent is None:
         return []
-    refs = []
-    for name_elem in parent.findall("name"):
-        ref_id = name_elem.get("id")
-        if ref_id and name_elem.text:
-            refs.append(ArtistRef(id=int(ref_id), name=name_elem.text))
-    return refs
+    return [
+        ArtistRef(id=int(ref_id), name=name_elem.text)
+        for name_elem in parent.findall("name")
+        if (ref_id := name_elem.get("id")) and name_elem.text
+    ]
 
 
 class ArtistParser:
@@ -79,12 +78,11 @@ def _parse_label_refs(parent: Element | None) -> list[LabelRef]:
     """Parse a list of label references from a parent element."""
     if parent is None:
         return []
-    refs = []
-    for label_elem in parent.findall("label"):
-        ref_id = label_elem.get("id")
-        if ref_id and label_elem.text:
-            refs.append(LabelRef(id=int(ref_id), name=label_elem.text))
-    return refs
+    return [
+        LabelRef(id=int(ref_id), name=label_elem.text)
+        for label_elem in parent.findall("label")
+        if (ref_id := label_elem.get("id")) and label_elem.text
+    ]
 
 
 class LabelParser:
@@ -201,41 +199,33 @@ def _parse_release_labels(parent: Element | None) -> list[ReleaseLabel]:
     """Parse label credits on a release."""
     if parent is None:
         return []
-    labels = []
-    for label_elem in parent.findall("label"):
-        label_id = label_elem.get("id")
-        name = label_elem.get("name")
-        catalog_number = label_elem.get("catno")
-        if label_id and name:
-            labels.append(
-                ReleaseLabel(id=int(label_id), catalog_number=catalog_number, name=name)
-            )
-    return labels
+    return [
+        ReleaseLabel(
+            id=int(label_id), catalog_number=label_elem.get("catno"), name=name
+        )
+        for label_elem in parent.findall("label")
+        if (label_id := label_elem.get("id")) and (name := label_elem.get("name"))
+    ]
 
 
 def _parse_formats(parent: Element | None) -> list[Format]:
     """Parse format information."""
     if parent is None:
         return []
-    formats = []
-    for format_elem in parent.findall("format"):
-        name = format_elem.get("name")
-        quantity = format_elem.get("qty")
-        text = format_elem.get("text")
-        if name and quantity:
-            formats.append(
-                Format(
-                    name=name,
-                    quantity=quantity,
-                    text=text,
-                    descriptions=(
-                        [e.text for e in p.findall("description") if e.text]
-                        if (p := format_elem.find("descriptions")) is not None
-                        else []
-                    ),
-                )
-            )
-    return formats
+    return [
+        Format(
+            name=name,
+            quantity=quantity,
+            text=format_elem.get("text"),
+            descriptions=(
+                [e.text for e in p.findall("description") if e.text]
+                if (p := format_elem.find("descriptions")) is not None
+                else []
+            ),
+        )
+        for format_elem in parent.findall("format")
+        if (name := format_elem.get("name")) and (quantity := format_elem.get("qty"))
+    ]
 
 
 def _parse_sub_tracks(parent: Element | None) -> list[SubTrack]:
@@ -320,19 +310,14 @@ def _parse_identifiers(parent: Element | None) -> list[Identifier]:
     """Parse identifiers (barcode, matrix, etc.)."""
     if parent is None:
         return []
-    identifiers = []
-    for id_elem in parent.findall("identifier"):
-        id_type = id_elem.get("type") or None
-        description = id_elem.get("description") or None
-        value = id_elem.get("value") or None
-        identifiers.append(
-            Identifier(
-                type=id_type,
-                description=description,
-                value=value,
-            )
+    return [
+        Identifier(
+            type=id_elem.get("type") or None,
+            description=id_elem.get("description") or None,
+            value=id_elem.get("value") or None,
         )
-    return identifiers
+        for id_elem in parent.findall("identifier")
+    ]
 
 
 def _parse_companies(parent: Element | None) -> list[Company]:
@@ -378,16 +363,11 @@ def _parse_series(parent: Element | None) -> list[Series]:
     """Parse series information."""
     if parent is None:
         return []
-    series_list = []
-    for series_elem in parent.findall("series"):
-        series_id = series_elem.get("id")
-        name = series_elem.get("name")
-        catalog_number = series_elem.get("catno")
-        if series_id and name:
-            series_list.append(
-                Series(id=int(series_id), catalog_number=catalog_number, name=name)
-            )
-    return series_list
+    return [
+        Series(id=int(series_id), catalog_number=series_elem.get("catno"), name=name)
+        for series_elem in parent.findall("series")
+        if (series_id := series_elem.get("id")) and (name := series_elem.get("name"))
+    ]
 
 
 def _parse_videos(parent: Element | None) -> list[Video]:

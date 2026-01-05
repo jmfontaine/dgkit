@@ -348,7 +348,45 @@ Keeping the change for readability.
 
 ### Experiment 4: List comprehensions
 
-**Status:** Not started
+**Status:** Complete
+
+**Hypothesis:** Replacing append-based loops with list comprehensions will reduce runtime by 5-10%.
+
+**Implementation:**
+
+Converted 6 functions in `parsers.py` from append loops to list comprehensions:
+
+- `_parse_artist_refs`
+- `_parse_label_refs`
+- `_parse_release_labels`
+- `_parse_formats`
+- `_parse_identifiers`
+- `_parse_series`
+
+Used walrus operator (`:=`) for conditional assignments in comprehensions.
+
+**Results:**
+
+| Run | Time | Throughput |
+|-----|------|------------|
+| 1 | 76s | 13,102/s |
+| 2 | 76s | 13,055/s |
+| 3 | 77s | 12,975/s |
+| **Average** | **76s** | **13,044/s** |
+
+| Metric | Before (Exp 3) | After | Incremental |
+|--------|----------------|-------|-------------|
+| Time | 77s | 76s | -1% |
+| Throughput | 12,962/s | 13,044/s | +1% |
+
+| Metric | Baseline | Cumulative | Change |
+|--------|----------|------------|--------|
+| Time | 85s | 76s | -11% |
+| Throughput | 11,700/s | 13,044/s | +11% |
+
+**Conclusion:** Minimal incremental improvement (~1%). The functions converted are
+called less frequently than the hot paths (`_parse_credit_artists`, `_parse_extra_artists`).
+Keeping the change for cleaner code.
 
 ## Decision Outcome
 
