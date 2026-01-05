@@ -11,7 +11,7 @@ Filter expression grammar (BNF):
     value       ::= string | number | 'true' | 'false' | 'null'
 """
 
-from dataclasses import replace
+from msgspec.structs import replace
 from typing import Any, Protocol
 
 import pyparsing as pp

@@ -1,16 +1,14 @@
-from dataclasses import dataclass, field
+from msgspec import Struct, field
 
 
-@dataclass(slots=True)
-class ArtistRef:
+class ArtistRef(Struct):
     """Reference to another artist (used for aliases, members, groups)."""
 
     id: int | None
     name: str | None
 
 
-@dataclass(slots=True)
-class Artist:
+class Artist(Struct):
     id: int
     data_quality: str | None
     name: str | None
@@ -23,16 +21,14 @@ class Artist:
     urls: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
-class LabelRef:
+class LabelRef(Struct):
     """Reference to another label (used for sub_labels, parent_label)."""
 
     id: int | None
     name: str | None
 
 
-@dataclass(slots=True)
-class Label:
+class Label(Struct):
     id: int
     contact_info: str | None
     data_quality: str | None
@@ -43,8 +39,7 @@ class Label:
     urls: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
-class CreditArtist:
+class CreditArtist(Struct):
     """Artist credit on a release or master."""
 
     id: int | None
@@ -53,8 +48,7 @@ class CreditArtist:
     name: str | None
 
 
-@dataclass(slots=True)
-class ExtraArtist:
+class ExtraArtist(Struct):
     """Extra artist credit with role (producer, engineer, etc.)."""
 
     id: int | None
@@ -64,8 +58,7 @@ class ExtraArtist:
     tracks: str | None
 
 
-@dataclass(slots=True)
-class ReleaseLabel:
+class ReleaseLabel(Struct):
     """Label credit on a release."""
 
     id: int | None
@@ -73,8 +66,7 @@ class ReleaseLabel:
     name: str | None
 
 
-@dataclass(slots=True)
-class Format:
+class Format(Struct):
     """Physical format of a release."""
 
     name: str | None
@@ -86,8 +78,7 @@ class Format:
     descriptions: list[str] = field(default_factory=list)
 
 
-@dataclass(slots=True)
-class SubTrack:
+class SubTrack(Struct):
     """Sub-track within a track (movements, sections)."""
 
     duration: str | None
@@ -97,8 +88,7 @@ class SubTrack:
     extra_artists: list[ExtraArtist] = field(default_factory=list)
 
 
-@dataclass(slots=True)
-class Track:
+class Track(Struct):
     """Track on a release."""
 
     duration: str | None
@@ -109,8 +99,7 @@ class Track:
     sub_tracks: list[SubTrack] = field(default_factory=list)
 
 
-@dataclass(slots=True)
-class Identifier:
+class Identifier(Struct):
     """Identifier like barcode, matrix, etc."""
 
     type: str | None
@@ -118,8 +107,7 @@ class Identifier:
     value: str | None
 
 
-@dataclass(slots=True)
-class Company:
+class Company(Struct):
     """Company credit on a release."""
 
     id: int | None
@@ -129,8 +117,7 @@ class Company:
     name: str | None
 
 
-@dataclass(slots=True)
-class Series:
+class Series(Struct):
     """Series a release belongs to."""
 
     id: int | None
@@ -138,8 +125,7 @@ class Series:
     name: str | None
 
 
-@dataclass(slots=True)
-class Video:
+class Video(Struct):
     """Video associated with a master release."""
 
     description: str | None
@@ -149,8 +135,7 @@ class Video:
     title: str | None
 
 
-@dataclass(slots=True)
-class MasterRelease:
+class MasterRelease(Struct):
     id: int
     data_quality: str | None
     main_release: int | None
@@ -163,8 +148,7 @@ class MasterRelease:
     videos: list[Video] = field(default_factory=list)
 
 
-@dataclass(slots=True)
-class Release:
+class Release(Struct):
     id: int
     country: str | None
     data_quality: str | None

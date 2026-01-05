@@ -5,7 +5,8 @@ import re
 import sqlite3
 import types
 
-from dataclasses import asdict, fields, is_dataclass
+import msgspec
+from msgspec import Struct, structs
 from importlib.resources import files
 from pathlib import Path
 from typing import (
@@ -38,26 +39,34 @@ def _get_list_element_type(field_type: type) -> type | None:
     return None
 
 
-class _DataclassType(Protocol):
-    """Protocol for dataclass class types (not instances)."""
+def _is_struct_class(cls: Any) -> bool:
+    """Check if cls is a Struct class (not instance)."""
+    try:
+        return isinstance(cls, type) and issubclass(cls, Struct)
+    except TypeError:
+        return False
 
-    __dataclass_fields__: dict[str, Any]
+
+class _StructType(Protocol):
+    """Protocol for Struct class types (not instances)."""
+
+    __struct_fields__: tuple
     __annotations__: dict[str, type]
 
 
 def _get_field_names(record: Any) -> list[str]:
-    """Get field names from a dataclass instance or type."""
-    return [f.name for f in fields(record)]
+    """Get field names from a Struct instance or type."""
+    return [f.name for f in structs.fields(record)]
 
 
 def _get_field_value(record: Any, field_name: str) -> Any:
-    """Get field value from a dataclass instance."""
+    """Get field value from a Struct instance."""
     return getattr(record, field_name)
 
 
-def _get_type_field_names(cls: type) -> list[str]:
-    """Get field names from a dataclass type."""
-    return [f.name for f in fields(cls)]
+def _get_type_field_names(cls: type[Struct]) -> list[str]:
+    """Get field names from a Struct type."""
+    return [f.name for f in structs.fields(cls)]
 
 
 def _singularize(name: str) -> str:
@@ -71,26 +80,29 @@ def _singularize(name: str) -> str:
     return name
 
 
-def _dataclass_to_row(obj: Any, serialize_lists: bool = True) -> tuple:
-    """Convert a dataclass to a tuple.
+def _struct_to_row(obj: Any, serialize_lists: bool = True) -> tuple:
+    """Convert a Struct to a tuple.
 
     Args:
-        obj: Dataclass instance to convert.
+        obj: Struct instance to convert.
         serialize_lists: If True, serialize lists as JSON strings (for SQLite).
             If False, pass lists directly for PostgreSQL arrays, but still
-            serialize lists of dataclasses as JSON.
+            serialize lists of Structs as JSON.
     """
     values = []
-    for f in fields(obj):
+    for f in structs.fields(obj):
         value = getattr(obj, f.name)
         if isinstance(value, (list, tuple)):
             if serialize_lists:
                 # SQLite: serialize all lists as JSON
-                serializable = [asdict(v) if is_dataclass(v) else v for v in value]
+                serializable = [
+                    msgspec.to_builtins(v) if isinstance(v, Struct) else v
+                    for v in value
+                ]
                 values.append(json.dumps(serializable))
-            elif value and is_dataclass(value[0]) and not isinstance(value[0], type):
-                # PostgreSQL: serialize lists of dataclasses as JSONB
-                serializable = [asdict(v) for v in value]
+            elif value and isinstance(value[0], Struct):
+                # PostgreSQL: serialize lists of Structs as JSONB
+                serializable = [msgspec.to_builtins(v) for v in value]
                 values.append(json.dumps(serializable))
             else:
                 # PostgreSQL: pass primitive lists directly for array types
@@ -287,7 +299,7 @@ class JsonWriter:
             if not self._first:
                 self._fp.write(",\n")
             self._first = False
-            self._fp.write(json.dumps(asdict(record)))
+            self._fp.write(json.dumps(msgspec.to_builtins(record)))
 
 
 class JsonlWriter:
@@ -315,7 +327,7 @@ class JsonlWriter:
 
     def write(self, record: Any) -> None:
         if self._fp:
-            self._fp.write(json.dumps(asdict(record)) + "\n")
+            self._fp.write(json.dumps(msgspec.to_builtins(record)) + "\n")
 
 
 SQLITE_TYPE_MAP: dict[type, str] = {
@@ -388,12 +400,12 @@ class SqliteWriter:
         else:
             schema_columns = set()
 
-        # Identify junction table fields (list[int], list[str], or list[dataclass])
+        # Identify junction table fields (list[int], list[str], or list[Struct])
         # A field is a junction field if it's a list type AND not in the SQL schema
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
             if elem_type is not None and (
-                elem_type is int or elem_type is str or is_dataclass(elem_type)
+                elem_type is int or elem_type is str or _is_struct_class(elem_type)
             ):
                 # Only treat as junction if field is not in main table schema
                 if not schema_columns or field not in schema_columns:
@@ -454,7 +466,7 @@ class SqliteWriter:
                     f"{fk_col} INTEGER NOT NULL, "
                     f"{val_col} TEXT NOT NULL)"
                 )
-            elif is_dataclass(elem_type):
+            elif _is_struct_class(elem_type):
                 # Dataclass junction table: {table}_id + elem fields
                 fk_col = f"{table_name}_id"
                 elem_annotations = elem_type.__annotations__
@@ -520,8 +532,8 @@ class SqliteWriter:
             value = _get_field_value(record, field_name)
             if isinstance(value, (list, tuple)):
                 main_values.append(json.dumps(value))
-            elif is_dataclass(value) and not isinstance(value, type):
-                main_values.append(json.dumps(asdict(value)))
+            elif isinstance(value, Struct):
+                main_values.append(json.dumps(msgspec.to_builtins(value)))
             else:
                 main_values.append(value)
 
@@ -537,9 +549,9 @@ class SqliteWriter:
                 for item in values:
                     if elem_type is int or elem_type is str:
                         self._buffers[junction_table].append((record_id, item))
-                    elif is_dataclass(elem_type):
+                    elif _is_struct_class(elem_type):
                         self._buffers[junction_table].append(
-                            (record_id, *_dataclass_to_row(item))
+                            (record_id, *_struct_to_row(item))
                         )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)
@@ -647,12 +659,12 @@ class PostgresWriter:
         else:
             schema_columns = set()
 
-        # Identify junction table fields (list[int], list[str], or list[dataclass])
+        # Identify junction table fields (list[int], list[str], or list[Struct])
         # A field is a junction field if it's a list type AND not in the SQL schema
         for field, field_type in annotations.items():
             elem_type = _get_list_element_type(field_type)
             if elem_type is not None and (
-                elem_type is int or elem_type is str or is_dataclass(elem_type)
+                elem_type is int or elem_type is str or _is_struct_class(elem_type)
             ):
                 # Only treat as junction if field is not in main table schema
                 if not schema_columns or field not in schema_columns:
@@ -723,8 +735,10 @@ class PostgresWriter:
                 elif elem_type is str:
                     val_col = _singularize(field)
                     junction_columns = [fk_col, val_col]
-                elif is_dataclass(elem_type):
-                    junction_columns = [fk_col] + _get_type_field_names(elem_type)
+                elif _is_struct_class(elem_type):
+                    junction_columns = [fk_col] + _get_type_field_names(
+                        cast(type[Struct], elem_type)
+                    )
                 else:
                     junction_columns = [fk_col]
                 self._table_columns[junction_table] = junction_columns
@@ -760,7 +774,7 @@ class PostgresWriter:
                             pgsql.Identifier(val_col),
                         )
                     )
-                elif is_dataclass(elem_type):
+                elif _is_struct_class(elem_type):
                     col_defs: list[pgsql.Composable] = [
                         pgsql.SQL("{} BIGINT NOT NULL").format(pgsql.Identifier(fk_col))
                     ]
@@ -866,15 +880,15 @@ class PostgresWriter:
                 continue
             value = _get_field_value(record, field_name)
             if isinstance(value, (list, tuple)):
-                # Check if list contains dataclasses -> JSONB, else -> array
-                if value and is_dataclass(value[0]) and not isinstance(value[0], type):
-                    serializable = [asdict(v) for v in value]
+                # Check if list contains Structs -> JSONB, else -> array
+                if value and isinstance(value[0], Struct):
+                    serializable = [msgspec.to_builtins(v) for v in value]
                     main_values.append(json.dumps(serializable))
                 else:
                     # Pass list directly for PostgreSQL array types
                     main_values.append(list(value))
-            elif is_dataclass(value) and not isinstance(value, type):
-                main_values.append(json.dumps(asdict(value)))
+            elif isinstance(value, Struct):
+                main_values.append(json.dumps(msgspec.to_builtins(value)))
             else:
                 main_values.append(value)
 
@@ -889,9 +903,9 @@ class PostgresWriter:
                 for item in values:
                     if elem_type is int or elem_type is str:
                         self._buffers[junction_table].append((record_id, item))
-                    elif is_dataclass(elem_type):
+                    elif _is_struct_class(elem_type):
                         self._buffers[junction_table].append(
-                            (record_id, *_dataclass_to_row(item, serialize_lists=False))
+                            (record_id, *_struct_to_row(item, serialize_lists=False))
                         )
                 if len(self._buffers[junction_table]) >= self.batch_size:
                     self._flush(junction_table)

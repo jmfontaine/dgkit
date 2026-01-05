@@ -13,9 +13,15 @@ and implement optimizations to improve throughput.
 
 **Input file:** `samples/discogs_20260101_releases_sample_1000000.xml.gz` (681MB, 1M releases)
 
-### Baseline Performance
+### Benchmark Methodology
 
-Benchmark: 1M releases, blackhole writer, no progress bar
+```bash
+uv run dgkit convert --format blackhole --no-progress samples/discogs_20260101_releases_sample_1000000.xml.gz
+```
+
+Run 3 times, record time and throughput from the summary output.
+
+### Baseline Performance
 
 | Run | Time | Throughput |
 |-----|------|------------|
@@ -270,7 +276,34 @@ Keeping the change since it's cleaner and slightly faster.
 
 ### Experiment 2: msgspec.Struct
 
-**Status:** Not started
+**Status:** Complete
+
+**Hypothesis:** Replacing dataclasses with msgspec.Struct will reduce runtime by ~10%.
+
+**Implementation:**
+
+- Added `msgspec>=0.19` dependency
+- Converted all 16 model classes in `models.py` from `@dataclass(slots=True)` to `msgspec.Struct`
+- Updated `writers.py` to use `msgspec.to_builtins()` for JSON serialization
+- Updated `filters.py` to use `msgspec.structs.replace()`
+
+**Results:**
+
+| Run | Time | Throughput |
+|-----|------|------------|
+| 1 | 77s | 12,949/s |
+| 2 | 78s | 12,812/s |
+| 3 | 78s | 12,781/s |
+| **Average** | **78s** | **12,847/s** |
+
+| Metric | Baseline | Optimized | Change |
+|--------|----------|-----------|--------|
+| Time | 85s | 78s | -8% |
+| Throughput | 11,700/s | 12,847/s | +10% |
+
+**Conclusion:** Significant improvement. msgspec.Struct has lower object creation
+overhead than dataclasses. The 10% throughput gain matches the expected improvement.
+Keeping the change.
 
 ### Experiment 3: Match statement
 
