@@ -388,6 +388,47 @@ Used walrus operator (`:=`) for conditional assignments in comprehensions.
 called less frequently than the hot paths (`_parse_credit_artists`, `_parse_extra_artists`).
 Keeping the change for cleaner code.
 
+### Experiment 5: Cache child.text attribute
+
+**Status:** Complete
+
+**Hypothesis:** Caching `child.text` at the start of each loop iteration will reduce runtime by 1-2%.
+
+**Implementation:**
+
+Added `text = child.text` at the start of parser loops in 7 functions:
+
+- `_parse_credit_artists`
+- `_parse_extra_artists`
+- `_parse_sub_tracks`
+- `_parse_tracks`
+- `_parse_companies`
+- `_parse_videos`
+- `ReleaseParser.parse`
+
+**Results:**
+
+| Run | Time | Throughput |
+|-----|------|------------|
+| 1 | 76s | 13,017/s |
+| 2 | 77s | 12,968/s |
+| 3 | 76s | 13,021/s |
+| **Average** | **76s** | **13,002/s** |
+
+| Metric | Before (Exp 4) | After | Incremental |
+|--------|----------------|-------|-------------|
+| Time | 76s | 76s | 0% |
+| Throughput | 13,044/s | 13,002/s | 0% |
+
+| Metric | Baseline | Cumulative | Change |
+|--------|----------|------------|--------|
+| Time | 85s | 76s | -11% |
+| Throughput | 11,700/s | 13,002/s | +11% |
+
+**Conclusion:** No measurable improvement. lxml's `.text` attribute access is already
+fast (likely a simple C struct field access). The caching adds no benefit and slightly
+increases memory pressure. Reverting this change.
+
 ## Decision Outcome
 
 TBD - experiments in progress.
