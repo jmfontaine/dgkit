@@ -307,7 +307,44 @@ Keeping the change.
 
 ### Experiment 3: Match statement
 
-**Status:** Not started
+**Status:** Complete
+
+**Hypothesis:** Using match statements instead of if/elif chains will reduce runtime by 2-5%.
+
+**Implementation:**
+
+Converted 7 if/elif chains to match statements in `parsers.py`:
+
+- `_parse_credit_artists` (4 cases, called 2.9M times)
+- `_parse_extra_artists` (5 cases, called 3.1M times)
+- `_parse_sub_tracks` (5 cases)
+- `_parse_tracks` (6 cases, called 1M times)
+- `_parse_companies` (5 cases)
+- `_parse_videos` (2 cases)
+- `ReleaseParser.parse` (17 cases, called 1M times)
+
+**Results:**
+
+| Run | Time | Throughput |
+|-----|------|------------|
+| 1 | 76s | 13,038/s |
+| 2 | 77s | 12,869/s |
+| 3 | 77s | 12,979/s |
+| **Average** | **77s** | **12,962/s** |
+
+| Metric | Before (Exp 2) | After | Incremental |
+|--------|----------------|-------|-------------|
+| Time | 78s | 77s | -1% |
+| Throughput | 12,847/s | 12,962/s | +1% |
+
+| Metric | Baseline | Cumulative | Change |
+|--------|----------|------------|--------|
+| Time | 85s | 77s | -9% |
+| Throughput | 11,700/s | 12,962/s | +11% |
+
+**Conclusion:** Minimal incremental improvement (~1%), but cleaner code. Python's match
+statement doesn't provide significant performance gains over if/elif for string dispatch.
+Keeping the change for readability.
 
 ### Experiment 4: List comprehensions
 
