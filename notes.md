@@ -56,6 +56,7 @@
 - Test UX and document usage
 - Review code and document architecture and design decisions in CLAUDE.md
 - Test dgkit with all 2025 dumps, and possibly dumps from previous years.
+- Codename each major and minor release after a line of a Nine Inch Nails song that relates to its main focus?
 
 ### v0.1.0 - Foundations
 
@@ -65,11 +66,9 @@
 - Run linters
 - Test UX
 - Benchmark against alternatives
-
 - Create CLAUDE.md file
-
-- Review code
 - Update tests
+- Review code
 - Enable dependable.
 - Create QA pipeline
 - Create publish pipeline
@@ -98,3 +97,5 @@
 
 - Implement best practices from <https://clig.dev/> and <https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46>
 - Omit Modified and Dropped from the summary when no filters were passed.
+- Provide a ready to use AWS AMI, possibly paid for but at a very low price.
+- Research the possibility to run the commands `load` and `convert` in the the cloud
